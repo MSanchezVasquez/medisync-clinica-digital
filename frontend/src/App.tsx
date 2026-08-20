@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 
 function App() {
   const [pacientesAtendidos, setPacientesAtendidos] = useState(12);
@@ -30,9 +30,7 @@ function App() {
         <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm mb-8 flex items-center justify-between">
           <div>
             <h2 className="text-green-800 font-semibold">Sistema Operativo</h2>
-            <p className="text-green-700 text-sm">
-              Conectado exitosamente al Pipeline CI/CD
-            </p>
+            <p className="text-green-700 text-sm">Conectado exitosamente al Pipeline CI/CD</p>
           </div>
           <div className="animate-pulse h-3 w-3 bg-green-500 rounded-full"></div>
         </div>
@@ -57,16 +55,12 @@ function App() {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-slate-700">
-              Pre-Triaje Automatizado
-            </h3>
+            <h3 className="text-lg font-bold text-slate-700">Pre-Triaje Automatizado</h3>
             <p className="text-slate-500 text-sm mt-2 mb-6">
               Pacientes evaluados por la IA en la sesión actual.
             </p>
 
-            <div className="text-5xl font-black text-blue-600 mb-6">
-              {pacientesAtendidos}
-            </div>
+            <div className="text-5xl font-black text-blue-600 mb-6">{pacientesAtendidos}</div>
 
             <button
               onClick={() => setPacientesAtendidos((prev) => prev + 1)}
@@ -90,15 +84,11 @@ function App() {
               </li>
               <li className="flex items-center text-slate-600">
                 <span className="w-2 h-2 rounded-full bg-slate-300 mr-3"></span>
-                <span className="text-sm font-medium">
-                  Receptor de datos IoT
-                </span>
+                <span className="text-sm font-medium">Receptor de datos IoT</span>
               </li>
               <li className="flex items-center text-slate-600">
                 <span className="w-2 h-2 rounded-full bg-slate-300 mr-3"></span>
-                <span className="text-sm font-medium">
-                  Visor 3D de anatomía (AR)
-                </span>
+                <span className="text-sm font-medium">Visor 3D de anatomía (AR)</span>
               </li>
             </ul>
           </div>
