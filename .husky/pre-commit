@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 echo "🐶 Husky: Formateando y revisando el código del Frontend..."
 
 # Entrar a la carpeta frontend y ejecutar los chequeos
@@ -8,4 +5,4 @@ cd frontend
 pnpm run format
 pnpm run lint
 
-echo "✅ Todo en orden. ¡Commit autorizado!"
+echo "✅Todo en orden. ¡Commit autorizado!"
