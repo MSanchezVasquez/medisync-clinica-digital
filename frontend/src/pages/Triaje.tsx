@@ -82,10 +82,10 @@ export const Triaje = () => {
   return (
     <main ref={containerRef} className="max-w-5xl mx-auto px-6 py-10">
       {/* Status Banner */}
-      <div className="gsap-card bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm mb-8 flex items-center justify-between">
+      <div className="gsap-card bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm mb-8 flex items-center justify-between transition-colors duration-300">
         <div>
-          <h2 className="text-green-800 font-semibold">Sistema Operativo</h2>
-          <p className="text-green-700 text-sm">
+          <h2 className="text-green-800 dark:text-green-400 font-semibold">Sistema Operativo</h2>
+          <p className="text-green-700 dark:text-green-500 text-sm">
             Conectado exitosamente al Backend y Motor Gemini IA
           </p>
         </div>
@@ -94,7 +94,7 @@ export const Triaje = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Tarjeta 1: Motor de IA */}
-        <div className="gsap-card bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col transition-transform hover:-translate-y-1 duration-300">
+        <div className="gsap-card bg-white dark:bg-slate-900 dark:border-slate-800  rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col transition-transform hover:-translate-y-1 duration-300">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,7 +123,7 @@ export const Triaje = () => {
               rows={4}
               value={sintomas}
               onChange={(e) => setSintomas(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4 resize-none transition-all duration-300"
+              className="w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4 resize-none transition-all duration-300"
             />
             <button
               type="submit"
@@ -165,8 +165,8 @@ export const Triaje = () => {
               </div>
             </div>
           )}
-          <div className="gsap-card bg-white rounded-xl shadow-sm border border-slate-200 p-6 grow">
-            <h3 className="text-lg font-bold text-slate-700 mb-4 border-b pb-2">
+          <div className="gsap-card bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 grow transition-colors duration-300">
+            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-4 border-b border-slate-200 dark:border-slate-700 pb-2 transition-colors duration-300">
               Módulos del Sistema
             </h3>
             <ul className="space-y-4">
