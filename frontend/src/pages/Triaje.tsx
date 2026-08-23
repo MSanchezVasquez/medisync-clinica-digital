@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
+import { toast } from 'sonner';
 
 // Interfaz para TypeScript
 interface DiagnosticoIA {
@@ -19,7 +20,7 @@ export const Triaje = () => {
   const containerRef = useRef<HTMLElement>(null);
   const resultadoRef = useRef<HTMLDivElement>(null);
 
-  // 1. Animación de entrada general (Staggering)
+  // Animación de entrada general (Staggering)
   useGSAP(
     () => {
       gsap.from('.gsap-card', {
@@ -33,7 +34,7 @@ export const Triaje = () => {
     { scope: containerRef }
   );
 
-  // 2. Animación de revelación del diagnóstico
+  // Animación de revelación del diagnóstico
   useGSAP(() => {
     if (diagnostico) {
       gsap.from(resultadoRef.current, {
@@ -48,20 +49,31 @@ export const Triaje = () => {
 
   const evaluarSintomas = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sintomas.trim()) return;
+    if (!sintomas.trim()) {
+      toast.warning('Por favor, ingrese los síntomas del paciente.');
+      return;
+    }
+
     setCargando(true);
     setDiagnostico(null);
+
     try {
       const respuesta = await fetch('http://localhost:3000/api/triaje', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sintomas }),
       });
+
+      if (!respuesta.ok) throw new Error('Error en el servidor');
+
       const data = await respuesta.json();
       setDiagnostico(data);
       setPacientesAtendidos((prev) => prev + 1);
+
+      toast.success('Diagnóstico generado exitosamente');
     } catch (error) {
       console.error('Error:', error);
+      toast.error('Error de conexión. Verifica que el servidor backend esté encendido.');
     } finally {
       setCargando(false);
     }
@@ -112,7 +124,6 @@ export const Triaje = () => {
               value={sintomas}
               onChange={(e) => setSintomas(e.target.value)}
               className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4 resize-none transition-all duration-300"
-              required
             />
             <button
               type="submit"
