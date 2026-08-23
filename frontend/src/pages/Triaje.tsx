@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
+// Interfaz para TypeScript
 interface DiagnosticoIA {
   urgencia: 'ALTA' | 'MEDIA' | 'BAJA';
   especialidad: string;
@@ -11,6 +14,37 @@ export const Triaje = () => {
   const [diagnostico, setDiagnostico] = useState<DiagnosticoIA | null>(null);
   const [cargando, setCargando] = useState(false);
   const [pacientesAtendidos, setPacientesAtendidos] = useState(13);
+
+  // Referencias para aislar y apuntar las animaciones de GSAP
+  const containerRef = useRef<HTMLElement>(null);
+  const resultadoRef = useRef<HTMLDivElement>(null);
+
+  // 1. Animación de entrada general (Staggering)
+  useGSAP(
+    () => {
+      gsap.from('.gsap-card', {
+        y: 30,
+        opacity: 0,
+        duration: 0.6,
+        stagger: 0.2,
+        ease: 'power3.out',
+      });
+    },
+    { scope: containerRef }
+  );
+
+  // 2. Animación de revelación del diagnóstico
+  useGSAP(() => {
+    if (diagnostico) {
+      gsap.from(resultadoRef.current, {
+        y: 20,
+        opacity: 0,
+        scale: 0.95,
+        duration: 0.5,
+        ease: 'back.out(1.5)',
+      });
+    }
+  }, [diagnostico]); // Se ejecuta cada vez que 'diagnostico' cambia
 
   const evaluarSintomas = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,9 +68,9 @@ export const Triaje = () => {
   };
 
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10">
+    <main ref={containerRef} className="max-w-5xl mx-auto px-6 py-10">
       {/* Status Banner */}
-      <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm mb-8 flex items-center justify-between">
+      <div className="gsap-card bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm mb-8 flex items-center justify-between">
         <div>
           <h2 className="text-green-800 font-semibold">Sistema Operativo</h2>
           <p className="text-green-700 text-sm">
@@ -48,7 +82,7 @@ export const Triaje = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Tarjeta 1: Motor de IA */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col transition-transform hover:-translate-y-1 duration-300">
+        <div className="gsap-card bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col transition-transform hover:-translate-y-1 duration-300">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,13 +111,13 @@ export const Triaje = () => {
               rows={4}
               value={sintomas}
               onChange={(e) => setSintomas(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4 resize-none"
+              className="w-full border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4 resize-none transition-all duration-300"
               required
             />
             <button
               type="submit"
               disabled={cargando}
-              className={`w-full text-white font-semibold py-3 px-4 rounded-lg shadow-sm mt-auto ${cargando ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+              className={`w-full text-white font-semibold py-3 px-4 rounded-lg shadow-sm mt-auto transition-all duration-300 ${cargando ? 'bg-blue-400 cursor-not-allowed scale-95' : 'bg-blue-600 hover:bg-blue-700 active:scale-95'}`}
             >
               {cargando ? 'Analizando con Inteligencia Artificial...' : 'Evaluar Síntomas'}
             </button>
@@ -93,7 +127,10 @@ export const Triaje = () => {
         {/* Tarjeta 2: Resultados */}
         <div className="flex flex-col gap-6">
           {diagnostico && (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div
+              ref={resultadoRef}
+              className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 shadow-blue-100/50"
+            >
               <h3 className="text-lg font-bold text-slate-700 border-b pb-2 mb-4">
                 Resultado del Triaje
               </h3>
@@ -117,7 +154,7 @@ export const Triaje = () => {
               </div>
             </div>
           )}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 grow">
+          <div className="gsap-card bg-white rounded-xl shadow-sm border border-slate-200 p-6 grow">
             <h3 className="text-lg font-bold text-slate-700 mb-4 border-b pb-2">
               Módulos del Sistema
             </h3>
