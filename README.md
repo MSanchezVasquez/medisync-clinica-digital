@@ -88,6 +88,28 @@ pnpm run dev
 
 Abre `http://localhost:5173` en el navegador. Para la cuenta de demostración utiliza `admin` y `1234`.
 
+## Ejecución con Docker
+
+El repositorio incluye imágenes separadas para frontend y backend, coordinadas mediante Docker Compose:
+
+- `backend/Dockerfile`: compila TypeScript y ejecuta la API con Node.js.
+- `frontend/Dockerfile`: compila React y sirve la SPA mediante Nginx.
+- `docker-compose.yml`: expone el frontend en el puerto `5173` y el backend en el puerto `3000`.
+
+Antes de levantar los servicios, configura `backend/.env` con `GEMINI_API_KEY`. Después ejecuta desde la raíz:
+
+```bash
+docker compose up --build
+```
+
+Para detener los contenedores:
+
+```bash
+docker compose down
+```
+
+El directorio `backend/data` se monta como volumen para conservar el historial local al recrear el contenedor.
+
 ## Verificación
 
 ```bash
