@@ -39,11 +39,11 @@ jobs:
         run: pnpm run build
 
       # --- DESPLIEGUE ---
-      - name: 🚀 Despliegue Simulado a Staging
+      - name: Despliegue simulado a Staging
         run: |
           echo "==========================================="
           echo "Compilación de Backend y Frontend superada."
-          echo "📦 Empaquetando artefactos para producción..."
+          echo "Empaquetando artefactos para producción..."
           echo "Desplegando en el entorno de Staging simulado..."
-          echo "🎉 ¡Flujo automatizado CI/CD exitoso!"
+          echo "Flujo automatizado CI/CD exitoso."
           echo "==========================================="
