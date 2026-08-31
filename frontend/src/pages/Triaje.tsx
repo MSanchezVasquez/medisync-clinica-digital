@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { toast } from 'sonner';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { descargarInformeTriaje } from '../utils/informeTriaje';
 
 type DiagnosticoIA = {
@@ -9,17 +10,24 @@ type DiagnosticoIA = {
   especialidad: string;
   recomendacion: string;
 };
+type TriajeEdicion = {
+  id: string; dni: string; edad: number; peso: number; altura: number; sintomas: string;
+};
 
 const API = 'http://localhost:3000/api';
 const campo = 'w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500';
 
 export const Triaje = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const recibido = (location.state as { triajeEditar?: TriajeEdicion } | null)?.triajeEditar;
+  const [idEdicion, setIdEdicion] = useState<string | null>(recibido?.id ?? null);
   const [nombreCompleto, setNombreCompleto] = useState('');
-  const [dni, setDni] = useState('');
-  const [edad, setEdad] = useState('');
-  const [peso, setPeso] = useState('');
-  const [altura, setAltura] = useState('');
-  const [sintomas, setSintomas] = useState('');
+  const [dni, setDni] = useState(recibido?.dni ?? '');
+  const [edad, setEdad] = useState(recibido ? String(recibido.edad) : '');
+  const [peso, setPeso] = useState(recibido ? String(recibido.peso) : '');
+  const [altura, setAltura] = useState(recibido ? String(recibido.altura) : '');
+  const [sintomas, setSintomas] = useState(recibido?.sintomas ?? '');
   const [diagnostico, setDiagnostico] = useState<DiagnosticoIA | null>(null);
   const [consultandoDni, setConsultandoDni] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -31,8 +39,11 @@ export const Triaje = () => {
   useGSAP(() => { gsap.from('.gsap-card', { y: 24, opacity: 0, duration: 0.55, stagger: 0.15 }); }, { scope: containerRef });
   useGSAP(() => { if (diagnostico) gsap.from(resultadoRef.current, { y: 18, opacity: 0, scale: 0.97, duration: 0.45 }); }, [diagnostico]);
 
-  const consultarDni = async () => {
-    if (!/^\d{8}$/.test(dni)) return toast.warning('El DNI debe contener exactamente 8 dígitos.');
+  const consultarDni = async (): Promise<string | null> => {
+    if (!/^\d{8}$/.test(dni)) {
+      toast.warning('El DNI debe contener exactamente 8 dígitos.');
+      return null;
+    }
     setConsultandoDni(true); setNombreCompleto('');
     try {
       const r = await fetch(`${API}/consultar-dni`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dni }) });
@@ -40,17 +51,19 @@ export const Triaje = () => {
       if (!r.ok) throw new Error(data?.error || 'No se pudo consultar el DNI.');
       setNombreCompleto(data.nombreCompleto);
       toast.success('Datos del paciente encontrados.');
+      return data.nombreCompleto as string;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'No se pudo consultar el DNI.');
+      return null;
     } finally { setConsultandoDni(false); }
   };
 
-  const guardarAutomaticamente = async (d: DiagnosticoIA) => {
+  const guardarAutomaticamente = async (d: DiagnosticoIA, nombreVerificado: string) => {
     setGuardando(true);
     try {
-      const r = await fetch(`${API}/triajes`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombreCompleto, dni, edad: Number(edad), peso: Number(peso), altura: Number(altura), sintomas, ...d }),
+      const r = await fetch(idEdicion ? `${API}/triajes/${idEdicion}` : `${API}/triajes`, {
+        method: idEdicion ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombreCompleto: nombreVerificado, dni, edad: Number(edad), peso: Number(peso), altura: Number(altura), sintomas, ...d }),
       });
       const data = await r.json().catch(() => null);
       if (!r.ok) throw new Error(data?.error || 'No se pudo guardar el triaje.');
@@ -60,17 +73,28 @@ export const Triaje = () => {
 
   const evaluar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^\d{8}$/.test(dni) || !nombreCompleto) return toast.warning('Consulte y confirme primero un DNI válido.');
+    if (!/^\d{8}$/.test(dni)) return toast.warning('Ingrese un DNI válido de 8 dígitos.');
     if (!edad || !peso || !altura || Number(edad) < 0 || Number(edad) > 120) return toast.warning('Ingrese edad, peso y altura válidos.');
     if (!sintomas.trim()) return toast.warning('Ingrese los síntomas del paciente.');
     setCargando(true); setDiagnostico(null); setGuardado(false);
     try {
+      const nombreVerificado = await consultarDni();
+      if (!nombreVerificado) return;
       const r = await fetch(`${API}/triaje`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sintomas }) });
       const data = await r.json().catch(() => null);
       if (!r.ok) throw new Error(data?.error || `Error del servidor (${r.status})`);
       setDiagnostico(data);
-      if (data.urgencia === 'NULA') toast.info('La urgencia es nula y no se guardará en el historial.');
-      else { await guardarAutomaticamente(data); toast.success('Triaje evaluado y guardado automáticamente.'); }
+      if (data.urgencia === 'NULA') {
+        if (idEdicion) {
+          const eliminacion = await fetch(`${API}/triajes/${idEdicion}`, { method: 'DELETE' });
+          if (!eliminacion.ok) throw new Error('No se pudo retirar el triaje anterior del historial.');
+          setIdEdicion(null);
+        }
+        toast.info('La urgencia es nula y no se guardará en el historial.');
+      } else {
+        await guardarAutomaticamente(data, nombreVerificado);
+        toast.success(idEdicion ? 'Triaje reevaluado y actualizado.' : 'Triaje evaluado y guardado automáticamente.');
+      }
     } catch (error) {
       toast.error(error instanceof TypeError ? 'No se pudo conectar con el backend.' : error instanceof Error ? error.message : 'No se pudo completar la evaluación.');
     } finally { setCargando(false); }
@@ -78,7 +102,9 @@ export const Triaje = () => {
 
   const nuevoTriaje = () => {
     setNombreCompleto(''); setDni(''); setEdad(''); setPeso(''); setAltura(''); setSintomas('');
-    setDiagnostico(null); setGuardado(false); setGuardando(false); window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIdEdicion(null); setDiagnostico(null); setGuardado(false); setGuardando(false);
+    navigate('/triaje', { replace: true, state: null });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const descargar = () => diagnostico && descargarInformeTriaje({
@@ -93,7 +119,7 @@ export const Triaje = () => {
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <section className="gsap-card bg-white/90 dark:bg-slate-900/90 rounded-2xl shadow-xl border border-white dark:border-slate-800 p-6">
-        <h3 className="text-xl font-bold mb-1">Nueva evaluación</h3><p className="text-sm text-slate-500 mb-6">Complete la información clínica del paciente.</p>
+        <h3 className="text-xl font-bold mb-1">{idEdicion ? 'Reevaluar triaje' : 'Nueva evaluación'}</h3><p className="text-sm text-slate-500 mb-6">{idEdicion ? 'Modifique los datos permitidos. El nombre y el diagnóstico se obtendrán nuevamente.' : 'Complete la información clínica del paciente.'}</p>
         <form onSubmit={evaluar} className="space-y-4">
           <div><label htmlFor="dni" className={etiqueta}>DNI</label><div className="flex gap-2">
             <input id="dni" inputMode="numeric" maxLength={8} value={dni} onChange={(e) => { setDni(e.target.value.replace(/\D/g, '')); setNombreCompleto(''); }} className={`${campo} flex-1 min-w-0`} required />
