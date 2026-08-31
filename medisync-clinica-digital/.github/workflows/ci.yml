@@ -1,0 +1,49 @@
+name: CI Clínica Digital (Monorepo)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build_and_simulate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js y pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm install -g pnpm
+
+      # --- BACKEND ---
+      - name: Instalar dependencias (Backend)
+        working-directory: ./backend
+        run: pnpm install
+
+      - name: Generar Prisma (Backend)
+        working-directory: ./backend
+        run: pnpm prisma generate
+
+      # --- FRONTEND ---
+      - name: Instalar dependencias (Frontend)
+        working-directory: ./frontend
+        run: pnpm install
+
+      - name: Compilar React (Frontend)
+        working-directory: ./frontend
+        run: pnpm run build
+
+      # --- DESPLIEGUE ---
+      - name: 🚀 Despliegue Simulado a Staging
+        run: |
+          echo "==========================================="
+          echo "Compilación de Backend y Frontend superada."
+          echo "📦 Empaquetando artefactos para producción..."
+          echo "Desplegando en el entorno de Staging simulado..."
+          echo "🎉 ¡Flujo automatizado CI/CD exitoso!"
+          echo "==========================================="

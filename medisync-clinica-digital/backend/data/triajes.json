@@ -1,0 +1,54 @@
+[
+  {
+    "id": "38dd1d51-bb3f-451b-87ab-bc39eef1d775",
+    "sintomas": "tos y fiebre",
+    "urgencia": "BAJA",
+    "especialidad": "Medicina General",
+    "recomendacion": "Tomar cita por consultorio externo.",
+    "creadoEn": "2026-08-31T03:12:12.098Z",
+    "nombreCompleto": "Paciente sin registrar",
+    "dni": "",
+    "edad": 0,
+    "peso": 0,
+    "altura": 0
+  },
+  {
+    "id": "7f69b64d-15ae-4d17-b08a-196c0b3c1784",
+    "sintomas": "emorragia interna",
+    "urgencia": "ALTA",
+    "especialidad": "Emergencias / Cirugía General",
+    "recomendacion": "Acudir de inmediato al área de emergencias o solicitar una ambulancia de urgencia.",
+    "creadoEn": "2026-08-31T03:19:08.935Z",
+    "nombreCompleto": "Paciente sin registrar",
+    "dni": "",
+    "edad": 0,
+    "peso": 0,
+    "altura": 0
+  },
+  {
+    "id": "9c562ab9-0b26-4142-bb3a-bfd37e1e542d",
+    "nombreCompleto": "CHRISTIAN ULISES SILVA GONZALEZ",
+    "dni": "73224407",
+    "edad": 25,
+    "peso": 68,
+    "altura": 177,
+    "sintomas": "dolores de cabeza intensos y vomitos",
+    "urgencia": "ALTA",
+    "especialidad": "Neurología / Emergencias",
+    "recomendacion": "Acudir de inmediato al área de emergencias para una evaluación prioritaria.",
+    "creadoEn": "2026-08-31T04:05:15.838Z"
+  },
+  {
+    "id": "54b858ac-a422-4c5a-b9fb-91c0c2d15178",
+    "nombreCompleto": "WILSON WILLY GINEZ QUISPE",
+    "dni": "70851423",
+    "edad": 20,
+    "peso": 73,
+    "altura": 170,
+    "sintomas": "dolor de cabeza, dolor de garganta, fiebre entre 37.5 y 38 y perdida de apetito",
+    "urgencia": "BAJA",
+    "especialidad": "Medicina General",
+    "recomendacion": "Agendar una cita por consultorio externo para evaluación médica, mantenerse hidratado y guardar reposo.",
+    "creadoEn": "2026-08-31T04:13:30.230Z"
+  }
+]
