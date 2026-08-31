@@ -28,12 +28,12 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors duration-300 px-6">
-      <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-8 transition-colors duration-300">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-cyan-100 dark:from-slate-950 dark:via-slate-900 dark:to-teal-950 px-6">
+      <div className="max-w-md w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur rounded-3xl shadow-2xl border border-white dark:border-slate-800 p-8">
         {/* Encabezado del Formulario */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4">
-            <span className="text-3xl">🏥</span>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-100 dark:bg-teal-900/30 mb-4">
+            <svg className="w-9 h-9 text-teal-700 dark:text-teal-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 21V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14"/><path d="M9 5V3h6v2M9 10h6M12 7v6M8 21v-4h8v4"/></svg>
           </div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Acceso Médico</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
@@ -75,7 +75,7 @@ export const Login = () => {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg shadow-sm transition-colors duration-200"
+            className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition-all"
           >
             Iniciar Sesión
           </button>

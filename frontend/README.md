@@ -1,4 +1,4 @@
-# 🏥 MediSync Perú - Frontend Client
+# MediSync Perú - Frontend Client
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
@@ -10,7 +10,7 @@ Este repositorio contiene el módulo **Frontend** de **MediSync Perú**, una pla
 
 ---
 
-## 🚀 Características Principales
+## Características Principales
 
 - **Autenticación de Sesión:** Gestión de acceso administrativo con validación local y persistencia de sesión mediante `localStorage`, sentando las bases para una futura integración con tokens JWT.
 - **Motor de Pre-Triaje con IA:** Formulario interactivo conectado a un backend (Express + Google Gemini) para procesar síntomas, determinar niveles de urgencia y sugerir especialidades médicas en milisegundos.
@@ -22,7 +22,7 @@ Este repositorio contiene el módulo **Frontend** de **MediSync Perú**, una pla
 
 ---
 
-## 🎓 Alineamiento Académico (Herramientas de Desarrollo Profesional - TIC)
+## Alineamiento Académico (Herramientas de Desarrollo Profesional - TIC)
 
 Este proyecto está desarrollado aplicando los estándares exigidos en el curso, específicamente alineado con la **Unidad 1: DevOps y Automatización de Procesos**.
 
@@ -38,7 +38,7 @@ Este proyecto está desarrollado aplicando los estándares exigidos en el curso,
 
 ---
 
-## 🏗️ Estructura del Proyecto
+## Estructura del Proyecto
 
 ```text
 frontend/
@@ -55,7 +55,7 @@ frontend/
 
 ---
 
-## ⚙️ Instalación y Configuración
+## Instalación y Configuración
 
 Sigue estos pasos para desplegar el entorno de desarrollo localmente:
 

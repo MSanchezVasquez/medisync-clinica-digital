@@ -21,7 +21,7 @@ const LayoutConHeader = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-300">
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#ecfeff_0,_#f8fafc_34%,_#f1f5f9_100%)] dark:bg-[radial-gradient(circle_at_top_left,_#134e4a_0,_#0f172a_28%,_#020617_100%)] text-slate-800 dark:text-slate-200 font-sans transition-colors duration-300">
         <Toaster richColors position="top-right" />
 
         <LayoutConHeader>
