@@ -1,4 +1,4 @@
-# 🏥 MediSync Perú - Plataforma Integral Hospitalaria (Monorepo)
+# MediSync Perú - Plataforma Integral Hospitalaria (Monorepo)
 
 ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
 ![Express.js](https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB)
@@ -9,14 +9,14 @@
 
 MediSync Perú es una plataforma digital avanzada para la gestión hospitalaria y el pre-triaje automatizado. Este repositorio está estructurado como un **monorepo**, albergando tanto la interfaz de usuario (Frontend) como el servidor de servicios e Inteligencia Artificial (Backend).
 
-## 🚀 Arquitectura del Sistema
+## Arquitectura del Sistema
 
 El proyecto está dividido en dos módulos principales que operan en conjunto bajo estándares estrictos de calidad de código:
 
 - **`/frontend`**: Aplicación de una sola página (SPA) construida con React, Vite y Tailwind CSS v4. Gestiona la experiencia del usuario, persistencia de sesión local, sistema de notificaciones y animaciones de alto rendimiento.
 - **`/backend`**: API RESTful desarrollada con Node.js y Express. Procesa la lógica de negocio, políticas de CORS y la integración con el motor de Google Gemini AI para emitir diagnósticos.
 
-## ✨ Características Globales
+## Características Globales
 
 - **Motor de Pre-Triaje con IA:** Evaluación instantánea de síntomas con sugerencias de especialidad médica y niveles de urgencia.
 - **Seguridad y Accesos:** Panel administrativo protegido con validación de credenciales en local.
@@ -27,11 +27,11 @@ El proyecto está dividido en dos módulos principales que operan en conjunto ba
   - Infraestructura diseñada para la futura conexión de dispositivos de telemetría médica.
   - Empaquetado planificado con Docker. Los contenedores representan una solución moderna, ligera y eficiente para desarrollar, empaquetar y desplegar aplicaciones de forma consistente en cualquier entorno[cite: 1].
 
-## 🎓 Contexto Académico
+## Contexto Académico
 
 Proyecto desarrollado en el marco del curso **Herramientas de Desarrollo Profesional - TIC** (Universidad Tecnológica del Perú). La arquitectura aplica los conceptos de la **Unidad 1: DevOps y Automatización de Procesos**[cite: 1]. Actualmente, el sistema se está preparando para la fase de contenedorización utilizando Docker para asegurar el aislamiento a nivel de proceso y una ejecución consistente[cite: 1].
 
-## ⚙️ Guía de Ejecución
+## Guía de Ejecución
 
 Al ser un monorepositorio, los módulos deben levantarse en terminales independientes.
 
