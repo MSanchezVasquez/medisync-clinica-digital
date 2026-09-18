@@ -281,7 +281,7 @@ export const Triaje = () => {
                   type="button"
                   onClick={consultarDni}
                   disabled={consultandoDni || dni.length !== 8}
-                  className="px-4 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-semibold"
+                  className="px-4 rounded-xl font-semibold transition-colors duration-300 bg-teal-600 hover:bg-teal-700 text-white disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-800/80 dark:disabled:text-slate-500 disabled:cursor-not-allowed border border-transparent dark:disabled:border-slate-700"
                 >
                   {consultandoDni ? 'Consultando...' : 'Aceptar'}
                 </button>

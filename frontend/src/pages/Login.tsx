@@ -33,7 +33,16 @@ export const Login = () => {
         {/* Encabezado del Formulario */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-100 dark:bg-teal-900/30 mb-4">
-            <svg className="w-9 h-9 text-teal-700 dark:text-teal-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 21V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14"/><path d="M9 5V3h6v2M9 10h6M12 7v6M8 21v-4h8v4"/></svg>
+            <svg
+              className="w-9 h-9 text-teal-700 dark:text-teal-300"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path d="M4 21V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14" />
+              <path d="M9 5V3h6v2M9 10h6M12 7v6M8 21v-4h8v4" />
+            </svg>
           </div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Acceso Médico</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
