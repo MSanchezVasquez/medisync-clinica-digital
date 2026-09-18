@@ -28,7 +28,7 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-cyan-100 dark:from-slate-950 dark:via-slate-900 dark:to-teal-950 px-6">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-r from-teal-50 via-white to-cyan-100 dark:from-slate-950 dark:via-slate-900 dark:to-teal-950 px-6">
       <div className="max-w-md w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur rounded-3xl shadow-2xl border border-white dark:border-slate-800 p-8">
         {/* Encabezado del Formulario */}
         <div className="text-center mb-8">
@@ -84,7 +84,7 @@ export const Login = () => {
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition-all"
+            className="w-full bg-linear-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition-all"
           >
             Iniciar Sesión
           </button>

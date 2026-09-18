@@ -71,7 +71,7 @@ export const Dashboard = () => {
         </div>
         <button
           onClick={() => navigate('/triaje')}
-          className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-semibold px-5 py-3 rounded-xl shadow-lg"
+          className="bg-linear-to-r from-teal-600 to-cyan-600 text-white font-semibold px-5 py-3 rounded-xl shadow-lg"
         >
           Nueva consulta
         </button>
