@@ -27,7 +27,9 @@ export const ThemeToggle = ({ className = '' }: { className?: string }) => {
     <button
       type="button"
       className={`w-10 h-10 p-2 rounded-full transition-all duration-300 active:scale-95 flex items-center justify-center ${
-        isDark ? 'bg-black text-white' : 'bg-white text-black shadow-sm border border-slate-200'
+        isDark
+          ? 'bg-slate-800 text-teal-400 hover:bg-slate-700'
+          : 'bg-teal-50 text-teal-600 hover:bg-teal-100'
       } ${className}`}
       onClick={toggleTheme}
       title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
