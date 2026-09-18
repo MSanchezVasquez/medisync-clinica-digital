@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { ThemeToggle } from './ThemeToggle';
 
 const Logo = () => (
   <svg
@@ -16,15 +16,6 @@ const Logo = () => (
 );
 
 export const Header = () => {
-  const [oscuro, setOscuro] = useState(
-    () =>
-      localStorage.getItem('theme') === 'dark' ||
-      (!localStorage.getItem('theme') && matchMedia('(prefers-color-scheme: dark)').matches)
-  );
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', oscuro);
-    localStorage.setItem('theme', oscuro ? 'dark' : 'light');
-  }, [oscuro]);
   const enlace = ({ isActive }: { isActive: boolean }) =>
     `px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${isActive ? 'bg-white text-teal-700 shadow-sm dark:bg-teal-600 dark:text-white' : 'text-white/90 hover:bg-white/10'}`;
   return (
@@ -48,34 +39,7 @@ export const Header = () => {
               Triaje
             </NavLink>
           </nav>
-          <button
-            onClick={() => setOscuro(!oscuro)}
-            className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-yellow-300 border border-white/10"
-            title="Alternar tema"
-          >
-            {oscuro ? (
-              <svg
-                className="w-5 h-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-              </svg>
-            ) : (
-              <svg
-                className="w-5 h-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
-              </svg>
-            )}
-          </button>
+          <ThemeToggle />
         </div>
       </div>
     </header>
