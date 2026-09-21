@@ -26,8 +26,9 @@ export const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    void cargar();
+    const tareaInicial = window.setTimeout(() => void cargar(), 0);
     fetch(`${API}/estado-ia`).then((r) => setEstadoIA(r.ok ? 'Activo' : 'No disponible')).catch(() => setEstadoIA('No disponible'));
+    return () => window.clearTimeout(tareaInicial);
   }, [cargar]);
 
   const eliminar = async (t: Triaje) => {

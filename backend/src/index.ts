@@ -1,29 +1,19 @@
 import "dotenv/config";
-import { readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import express, { type Request, type Response } from "express";
 import cors from "cors";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { AiService, ErrorIA } from "./ai/aiService.js";
+import { listarPrompts } from "./ai/promptLibrary.js";
+import { TECNICAS_PROMPT, type TecnicaPrompt } from "./ai/types.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const obtenerApiKey = (): string => {
-  const configurada = process.env.GEMINI_API_KEY?.trim();
-  if (configurada) return configurada;
-  try {
-    const contenido = readFileSync(new URL("../.env", import.meta.url), "utf8").trim();
-    return contenido.includes("=") ? "" : contenido;
-  } catch {
-    return "";
-  }
-};
-
-const apiKey = obtenerApiKey();
+const apiKey = process.env.GEMINI_API_KEY?.trim() || "";
 console.log(`Estado de API Key: ${apiKey ? "CONFIGURADA" : "NO CONFIGURADA"}`);
-const genAI = new GoogleGenerativeAI(apiKey);
+const aiService = new AiService(apiKey);
 const dataDirectory = new URL("../data/", import.meta.url);
 const triajesFile = new URL("triajes.json", dataDirectory);
 
@@ -148,11 +138,17 @@ app.get("/api/estado-ia", async (_req: Request, res: Response): Promise<void> =>
     return;
   }
   try {
-    const respuesta = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+    const respuesta = await fetch("https://generativelanguage.googleapis.com/v1beta/models", {
+      headers: { "x-goog-api-key": apiKey },
+    });
     res.status(respuesta.ok ? 200 : 503).json({ activo: respuesta.ok });
   } catch {
     res.status(503).json({ activo: false });
   }
+});
+
+app.get("/api/ia/prompts", (_req: Request, res: Response): void => {
+  res.json(listarPrompts());
 });
 
 app.get("/api/dashboard", async (_req: Request, res: Response): Promise<void> => {
@@ -240,40 +236,19 @@ app.delete("/api/triajes/:id", async (req: Request, res: Response): Promise<void
 });
 
 app.post("/api/triaje", async (req: Request, res: Response): Promise<void> => {
-  const sintomas = typeof req.body.sintomas === "string" ? req.body.sintomas.trim() : "";
-  if (!sintomas) {
-    res.status(400).json({ error: "Se requieren los síntomas del paciente." });
-    return;
-  }
-  if (!apiKey) {
-    res.status(503).json({ error: "El servidor no tiene configurada la API key de Gemini." });
+  const tecnicaSolicitada = req.body.tecnica ?? "few-shot";
+  if (!TECNICAS_PROMPT.includes(tecnicaSolicitada)) {
+    res.status(400).json({ error: "La técnica debe ser zero-shot, one-shot o few-shot." });
     return;
   }
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
-    const prompt = `
-Eres un sistema automatizado de pre-triaje para la clínica MediSync Perú.
-Analiza los síntomas, determina la urgencia (ALTA, MEDIA, BAJA, NULA) y sugiere una especialidad.
-Usa NULA cuando no exista un síntoma clínicamente relevante, el texto no describa una enfermedad o se indiquen valores normales sin otro malestar, por ejemplo una temperatura de 37 grados. Para NULA usa "No aplica" como especialidad.
-Responde ÚNICAMENTE con JSON válido usando "urgencia", "especialidad" y "recomendacion".
-Ejemplo: Síntomas: "Fiebre de 38 grados y malestar general."
-JSON: {"urgencia":"BAJA","especialidad":"Medicina General","recomendacion":"Tomar cita por consultorio externo."}
-Ejemplo: Síntomas: "Visión borrosa repentina y parálisis en la mitad de la cara."
-JSON: {"urgencia":"ALTA","especialidad":"Neurología / Emergencias","recomendacion":"Acudir de inmediato a emergencias."}
-Ejemplo: Síntomas: "Tengo 37 grados y ningún malestar."
-JSON: {"urgencia":"NULA","especialidad":"No aplica","recomendacion":"No se identifican signos que requieran triaje."}
-Caso a evaluar: "${sintomas}"
-JSON:`;
-    const result = await model.generateContent(prompt);
-    const texto = result.response.text().replace(/```json/g, "").replace(/```/g, "").trim();
-    const respuesta = JSON.parse(texto) as Record<string, unknown>;
-    if (!["ALTA", "MEDIA", "BAJA", "NULA"].includes(String(respuesta.urgencia))) {
-      throw new Error("Gemini devolvió un nivel de urgencia no válido.");
-    }
-    res.json(respuesta);
+    const tecnica = tecnicaSolicitada as TecnicaPrompt;
+    const respuesta = await aiService.evaluar(req.body.sintomas, tecnica);
+    res.json({ ...respuesta, tecnica, promptId: listarPrompts().find((prompt) => prompt.tecnica === tecnica)?.id });
   } catch (error) {
-    console.error("Error con la IA:", error);
-    res.status(500).json({ error: error instanceof Error ? `Gemini no pudo procesar el triaje: ${error.message}` : "Error interno al procesar el triaje." });
+    const errorSeguro = error instanceof ErrorIA ? error : new ErrorIA("CONEXION", 500, "No se pudo procesar el pre-triaje.");
+    console.error(`Error IA [${errorSeguro.codigo}]: ${errorSeguro.message}`);
+    res.status(errorSeguro.status).json({ error: errorSeguro.message, codigo: errorSeguro.codigo });
   }
 });
 

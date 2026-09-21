@@ -1,8 +1,8 @@
-echo "🐶 Husky: Formateando y revisando el código del Frontend..."
+echo "Husky: formateando y revisando el codigo del frontend..."
 
 # Entrar a la carpeta frontend y ejecutar los chequeos
 cd frontend
 pnpm run format
 pnpm run lint
 
-echo "✅Todo en orden. ¡Commit autorizado!"
+echo "Todo en orden. Commit autorizado."

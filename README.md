@@ -6,7 +6,7 @@
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
 ![Gemini AI](https://img.shields.io/badge/Google%20Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white)
 
-MediSync Perú es una aplicación web para registrar pacientes, evaluar síntomas mediante Google Gemini y administrar un historial de pre-triajes. El proyecto utiliza una arquitectura monorepositorio con frontend React y backend Express.
+MediSync Perú es una aplicación web para registrar pacientes, evaluar síntomas mediante Google Gemini y administrar un historial de pre-triajes. El monorepositorio incluye frontend React, backend Express y un laboratorio Streamlit para comparar técnicas de prompting.
 
 ## Funcionalidades
 
@@ -22,6 +22,8 @@ MediSync Perú es una aplicación web para registrar pacientes, evaluar síntoma
 - Al editar un registro se vuelve a consultar el DNI y se genera un diagnóstico nuevo.
 - Navegación entre Inicio y Triaje, diseño adaptable y modo oscuro.
 - Interfaz basada en iconos SVG, sin emojis en el código.
+- Biblioteca versionada de prompts Zero-Shot, One-Shot y Few-Shot.
+- Interfaz Streamlit para demostrar y comparar las tres técnicas.
 
 ## Arquitectura
 
@@ -49,6 +51,7 @@ Endpoints principales:
 - `POST /api/triajes`
 - `PUT /api/triajes/:id`
 - `DELETE /api/triajes/:id`
+- `GET /api/ia/prompts`
 
 Los triajes se almacenan localmente en `backend/data/triajes.json`. Este mecanismo está pensado para desarrollo y demostración; un despliegue productivo debe utilizar una base de datos y controles de acceso adecuados para datos personales.
 
@@ -90,11 +93,12 @@ Abre `http://localhost:5173` en el navegador. Para la cuenta de demostración ut
 
 ## Ejecución con Docker
 
-El repositorio incluye imágenes separadas para frontend y backend, coordinadas mediante Docker Compose:
+El repositorio incluye imágenes separadas para frontend, backend y Streamlit, coordinadas mediante Docker Compose:
 
 - `backend/Dockerfile`: compila TypeScript y ejecuta la API con Node.js.
 - `frontend/Dockerfile`: compila React y sirve la SPA mediante Nginx.
-- `docker-compose.yml`: expone el frontend en el puerto `5173` y el backend en el puerto `3000`.
+- `streamlit/Dockerfile`: ejecuta el laboratorio de técnicas de prompting.
+- `docker-compose.yml`: expone frontend en `5173`, backend en `3000` y Streamlit en `8501`.
 
 Antes de levantar los servicios, configura `backend/.env` con `GEMINI_API_KEY`. Después ejecuta desde la raíz:
 
@@ -110,17 +114,35 @@ docker compose down
 
 El directorio `backend/data` se monta como volumen para conservar el historial local al recrear el contenedor.
 
+## Laboratorio Streamlit
+
+Con el backend activo, instala y ejecuta la interfaz demostrativa:
+
+```bash
+cd streamlit
+python -m pip install -r requirements.txt
+streamlit run app.py
+```
+
+Abre `http://localhost:8501`. La interfaz permite seleccionar Zero-Shot, One-Shot o Few-Shot y conserva un historial temporal de la sesión.
+
+La explicación técnica del avance está en `docs/AVANCE_2_IA.md` y la biblioteca completa en `docs/PROMPT_LIBRARY.md`.
+
 ## Verificación
 
 ```bash
 cd backend
-pnpm run build
+pnpm run check
+pnpm test
 
 cd ../frontend
 pnpm run build
+
+cd ../streamlit
+python -m compileall -q .
 ```
 
-El workflow de GitHub Actions instala dependencias, genera el cliente de Prisma y compila el frontend. La configuración `frontend/pnpm-workspace.yaml` autoriza únicamente el script de instalación requerido por `core-js`.
+El workflow de GitHub Actions instala dependencias con lockfile congelado, ejecuta las pruebas, compila backend y frontend y verifica el módulo Streamlit. La configuración `frontend/pnpm-workspace.yaml` autoriza únicamente el script de instalación requerido por `core-js`.
 
 ## Consideraciones
 
