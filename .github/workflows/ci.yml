@@ -20,25 +20,45 @@ jobs:
           node-version: "24"
       - run: npm install -g pnpm
 
-      # --- BACKEND ---
       - name: Instalar dependencias (Backend)
         working-directory: ./backend
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Generar Prisma (Backend)
         working-directory: ./backend
         run: pnpm prisma generate
 
-      # --- FRONTEND ---
+      - name: Verificar tipos (Backend)
+        working-directory: ./backend
+        run: pnpm run check
+
+      - name: Ejecutar pruebas (Backend)
+        working-directory: ./backend
+        run: pnpm test
+
+      - name: Compilar API (Backend)
+        working-directory: ./backend
+        run: pnpm run build
+
       - name: Instalar dependencias (Frontend)
         working-directory: ./frontend
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Compilar React (Frontend)
         working-directory: ./frontend
         run: pnpm run build
 
-      # --- DESPLIEGUE ---
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias (Streamlit)
+        run: pip install -r streamlit/requirements.txt
+
+      - name: Verificar modulo Streamlit
+        run: python -m compileall -q streamlit
+
       - name: Despliegue simulado a Staging
         run: |
           echo "==========================================="

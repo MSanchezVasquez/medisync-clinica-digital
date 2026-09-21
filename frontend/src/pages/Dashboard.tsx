@@ -41,11 +41,9 @@ export const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line
-    void cargar();
-    fetch(`${API}/estado-ia`)
-      .then((r) => setEstadoIA(r.ok ? 'Activo' : 'No disponible'))
-      .catch(() => setEstadoIA('No disponible'));
+    const tareaInicial = window.setTimeout(() => void cargar(), 0);
+    fetch(`${API}/estado-ia`).then((r) => setEstadoIA(r.ok ? 'Activo' : 'No disponible')).catch(() => setEstadoIA('No disponible'));
+    return () => window.clearTimeout(tareaInicial);
   }, [cargar]);
 
   const eliminar = async (t: Triaje) => {
