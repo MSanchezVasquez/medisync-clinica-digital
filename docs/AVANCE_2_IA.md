@@ -20,18 +20,17 @@ Integrar un LLM mediante API, aplicar Zero-Shot, One-Shot y Few-Shot, centraliza
 | Procesamiento | Validación, construcción del prompt, consulta al LLM y validación del JSON. |
 | Salida | Urgencia, especialidad sugerida y recomendación. |
 | Beneficio | Acelera una primera priorización sin sustituir el criterio clínico. |
-| Integración | React y Streamlit consumen el mismo endpoint del backend Express. |
+| Integración | La vista React de triaje consume el endpoint del backend Express. |
 
 ## 4. Funcionalidad
 
-El usuario describe síntomas y elige una técnica en Streamlit, o usa el flujo Few-Shot predeterminado en React. El backend valida la entrada, construye el prompt, consulta Gemini, valida el JSON y devuelve urgencia, especialidad y recomendación. En la aplicación principal, solo los triajes distintos de NULA se guardan automáticamente.
+El usuario describe síntomas y elige una técnica directamente en la vista React de triaje. El backend valida la entrada, construye el prompt, consulta Gemini, valida el JSON y devuelve urgencia, especialidad y recomendación. Solo los triajes distintos de NULA se guardan automáticamente.
 
 ## 5. Arquitectura
 
 ```mermaid
 flowchart LR
     R[React] --> API[API Express]
-    S[Streamlit] --> API
     API --> V[Validación de entrada]
     V --> P[Biblioteca de prompts]
     P --> A[Servicio de IA]
@@ -40,7 +39,6 @@ flowchart LR
     A --> J[Validación JSON]
     J --> API
     API --> R
-    API --> S
     API --> D[Persistencia local de triajes]
     API --> E[Servicio externo de DNI]
 ```
@@ -50,14 +48,13 @@ flowchart LR
 - React, TypeScript, Vite y Tailwind CSS para la aplicación principal.
 - Node.js, Express y TypeScript para la API.
 - SDK de Google Generative AI para Gemini.
-- Streamlit y Requests para la interfaz demostrativa.
 - Node Test Runner para pruebas unitarias.
-- Docker Compose para ejecutar los tres servicios.
+- Docker Compose para ejecutar frontend y backend.
 - GitHub Actions para verificación continua.
 
 ## 7. Integración con la API
 
-`POST /api/triaje` recibe `sintomas` y opcionalmente `tecnica`. El valor permitido es `zero-shot`, `one-shot` o `few-shot`; si se omite, se utiliza Few-Shot. La clave se lee exclusivamente desde `GEMINI_API_KEY` en el entorno del backend. El modelo y el tiempo máximo son configurables mediante `GEMINI_MODEL` y `AI_TIMEOUT_MS`.
+`POST /api/triaje` recibe `sintomas` y opcionalmente `tecnica`. El valor permitido es `zero-shot`, `one-shot` o `few-shot`; si se omite, se utiliza Few-Shot. La vista `/triaje` ofrece el selector correspondiente. La clave se lee desde `GEMINI_API_KEY` y, por compatibilidad, también se reconoce un archivo `.env` heredado que contenga únicamente la clave. El modelo predeterminado es `gemini-3.8-flash` y puede configurarse junto con el tiempo máximo mediante `GEMINI_MODEL` y `AI_TIMEOUT_MS`.
 
 La respuesta válida contiene `urgencia`, `especialidad`, `recomendacion`, `tecnica` y `promptId`. La API rechaza entradas vacías, mayores de 3000 caracteres, técnicas desconocidas y respuestas que no respeten el esquema.
 
@@ -114,22 +111,22 @@ El servicio distingue configuración ausente, entrada inválida, tiempo agotado,
 | Reinicio de aplicación | Aprobada; backend compilado reiniciado y tres prompts recuperados por HTTP. |
 | Entorno limpio | Frontend reinstalado con lockfile congelado y compilado correctamente. |
 | Integración real con Gemini | Aprobada para Zero-Shot, One-Shot y Few-Shot; el caso sin malestar devolvió NULA. |
-| Interacción Streamlit | Aprobada con `AppTest`: cero errores y dos métricas renderizadas. |
+| Integración de interfaz | Aprobada mediante la vista React y el endpoint compartido de triaje. |
 
-En total se ejecutaron 13 pruebas unitarias, todas aprobadas. También se verificaron tipos y compilación del backend, compilación de producción del frontend, lint, el arranque HTTP de Streamlit y una interacción real con Gemini. Docker no pudo ejecutarse en el equipo de verificación porque el comando no está instalado.
+En total se ejecutaron 13 pruebas unitarias, todas aprobadas. También se verificaron tipos y compilación del backend, compilación de producción del frontend, lint y una interacción real con Gemini. Docker no pudo ejecutarse en el equipo de verificación porque el comando no está instalado.
 
 ## 13. Resultados
 
-La lógica de IA quedó desacoplada de las rutas HTTP, la biblioteca puede ampliarse sin duplicar integración y ambas interfaces consumen la misma API. Few-Shot queda seleccionado para operación normal y las otras técnicas permanecen disponibles para demostración académica.
+La lógica de IA quedó desacoplada de las rutas HTTP y la biblioteca puede ampliarse sin duplicar integración. Few-Shot queda seleccionado para operación normal y las otras técnicas están disponibles en la misma interfaz para demostración académica.
 
 ## 14. Evidencias y capturas
 
 Para la entrega se deben capturar, sin mostrar claves ni datos reales:
 
 1. React ejecutándose en `/triaje` y mostrando un resultado.
-2. Streamlit en `http://localhost:8501` con cada técnica seleccionada.
+2. El selector de técnica en `/triaje` y una evaluación con cada opción.
 3. Resultado de `pnpm test` con todas las pruebas aprobadas.
-4. Ejecución de `docker compose up --build` con los tres servicios activos.
+4. Ejecución de `docker compose up --build` con frontend y backend activos.
 5. GitHub Actions aprobado en el pull request.
 
 ## 15. Limitaciones
@@ -138,7 +135,7 @@ El sistema no diagnostica, depende de disponibilidad y cuota de Gemini, y la sal
 
 ## 16. Conclusiones
 
-El avance implementa un caso de IA alineado con el problema, tres técnicas verificables, una biblioteca documentada, manejo seguro de configuración y dos interfaces funcionales. La validación posterior al LLM evita confiar ciegamente en texto libre.
+El avance implementa un caso de IA alineado con el problema, tres técnicas verificables, una biblioteca documentada, manejo seguro de configuración y una interfaz unificada. La validación posterior al LLM evita confiar ciegamente en texto libre.
 
 ## Matriz de cumplimiento final
 
@@ -150,9 +147,9 @@ El avance implementa un caso de IA alineado con el problema, tres técnicas veri
 | Few-Shot real | Cumple | PROMPT-03, tres ejemplos |
 | Biblioteca documentada | Cumple | `docs/PROMPT_LIBRARY.md` |
 | Interfaz principal | Cumple | React `/triaje` |
-| Interfaz demostrativa | Cumple | `streamlit/app.py` |
+| Selector de técnicas integrado | Cumple | `frontend/src/pages/Triaje.tsx` |
 | Seguridad de secretos | Cumple para desarrollo | `.env.example` y exclusiones Git |
-| Pruebas automatizadas | Cumple | 12 pruebas unitarias |
+| Pruebas automatizadas | Cumple | 13 pruebas unitarias |
 | Contenedores | Cumple en configuración | Dockerfiles y `docker-compose.yml` |
 
 ## Matriz antes y después
@@ -161,7 +158,7 @@ El avance implementa un caso de IA alineado con el problema, tres técnicas veri
 | --- | --- | --- | --- |
 | LLM integrado mediante API | Cumple | Cumple | Servicio Gemini reutilizado y aislado |
 | Funcionalidad relacionada con el negocio | Cumple | Cumple | Clasificación de pre-triaje |
-| Streamlit funcional | No cumple | Cumple | `streamlit/app.py` |
+| Demostración en interfaz | No cumple | Cumple | Selector integrado en `/triaje` |
 | Zero-Shot | No cumple | Cumple | PROMPT-01 |
 | One-Shot | No cumple | Cumple | PROMPT-02 |
 | Few-Shot | Cumple parcialmente | Cumple | PROMPT-03 implementado y probado |

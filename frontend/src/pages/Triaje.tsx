@@ -9,10 +9,19 @@ type DiagnosticoIA = {
   urgencia: 'ALTA' | 'MEDIA' | 'BAJA' | 'NULA';
   especialidad: string;
   recomendacion: string;
+  tecnica?: TecnicaPrompt;
+  promptId?: string;
 };
+type TecnicaPrompt = 'zero-shot' | 'one-shot' | 'few-shot';
 type TriajeEdicion = {
   id: string; dni: string; edad: number; peso: number; altura: number; sintomas: string;
 };
+
+const TECNICAS: Array<{ id: TecnicaPrompt; nombre: string; ejemplos: string; descripcion: string; recomendada?: boolean }> = [
+  { id: 'zero-shot', nombre: 'Zero-Shot', ejemplos: 'Sin ejemplos', descripcion: 'La IA analiza el caso usando únicamente las instrucciones clínicas.' },
+  { id: 'one-shot', nombre: 'One-Shot', ejemplos: '1 ejemplo', descripcion: 'La IA recibe un caso de referencia para orientar el formato de su respuesta.' },
+  { id: 'few-shot', nombre: 'Few-Shot', ejemplos: '3 ejemplos', descripcion: 'La IA compara varios casos y diferencia mejor los niveles de urgencia.', recomendada: true },
+];
 
 const API = 'http://localhost:3000/api';
 const campo = 'w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500';
@@ -28,6 +37,7 @@ export const Triaje = () => {
   const [peso, setPeso] = useState(recibido ? String(recibido.peso) : '');
   const [altura, setAltura] = useState(recibido ? String(recibido.altura) : '');
   const [sintomas, setSintomas] = useState(recibido?.sintomas ?? '');
+  const [tecnica, setTecnica] = useState<TecnicaPrompt>('few-shot');
   const [diagnostico, setDiagnostico] = useState<DiagnosticoIA | null>(null);
   const [consultandoDni, setConsultandoDni] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -80,7 +90,7 @@ export const Triaje = () => {
     try {
       const nombreVerificado = await consultarDni();
       if (!nombreVerificado) return;
-      const r = await fetch(`${API}/triaje`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sintomas }) });
+      const r = await fetch(`${API}/triaje`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sintomas, tecnica }) });
       const data = await r.json().catch(() => null);
       if (!r.ok) throw new Error(data?.error || `Error del servidor (${r.status})`);
       setDiagnostico(data);
@@ -131,6 +141,20 @@ export const Triaje = () => {
             <div><label className={etiqueta}>Altura (cm)</label><input type="number" min="30" max="250" step="0.1" value={altura} onChange={(e) => setAltura(e.target.value)} className={campo} required /></div>
           </div>
           <div><label htmlFor="sintomas" className={etiqueta}>Síntomas del paciente</label><textarea id="sintomas" rows={5} value={sintomas} onChange={(e) => setSintomas(e.target.value)} className={`${campo} resize-none`} required /></div>
+          <fieldset>
+            <legend className={etiqueta}>Técnica de análisis con IA</legend>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Seleccione cómo se le proporcionarán ejemplos a Gemini antes de analizar los síntomas.</p>
+            <div className="tecnica-grid">
+              {TECNICAS.map((opcion) => <label key={opcion.id} className={`tecnica-card ${tecnica === opcion.id ? 'tecnica-card--active' : ''}`}>
+                <input type="radio" name="tecnica" value={opcion.id} checked={tecnica === opcion.id} onChange={() => setTecnica(opcion.id)} className="sr-only" />
+                <span className="tecnica-card__top"><span className="tecnica-card__nombre">{opcion.nombre}</span>{opcion.recomendada && <span className="tecnica-card__recomendada">Recomendada</span>}</span>
+                <span className="tecnica-card__ejemplos">{opcion.ejemplos}</span>
+                <span className="tecnica-card__descripcion">{opcion.descripcion}</span>
+                <span className="tecnica-card__selector" aria-hidden="true"><span /></span>
+              </label>)}
+            </div>
+            <div className="tecnica-ayuda"><strong>Importante:</strong> la técnica cambia la forma de orientar a la IA, pero no reemplaza la evaluación de un profesional de salud.</div>
+          </fieldset>
           <button type="submit" disabled={cargando} className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 disabled:opacity-60 text-white font-semibold shadow-lg transition-all">{cargando ? 'Analizando...' : 'Evaluar síntomas'}</button>
         </form>
       </section>
@@ -138,6 +162,7 @@ export const Triaje = () => {
         <h3 className="text-xl font-bold border-b dark:border-slate-700 pb-3 mb-4">Resultado del triaje</h3>
         <div className="space-y-4 text-sm"><div className="flex justify-between"><span className="text-slate-500">Nivel de urgencia</span><span className={`font-bold px-2.5 py-1 rounded-lg ${diagnostico.urgencia === 'ALTA' ? 'bg-red-100 text-red-700' : diagnostico.urgencia === 'MEDIA' ? 'bg-yellow-100 text-yellow-700' : diagnostico.urgencia === 'BAJA' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-white'}`}>{diagnostico.urgencia}</span></div>
           <div><span className="text-slate-500">Especialidad sugerida</span><p className="font-semibold mt-1">{diagnostico.especialidad}</p></div>
+          {diagnostico.tecnica && <div><span className="text-slate-500">Técnica utilizada</span><p className="font-semibold mt-1">{diagnostico.tecnica}</p></div>}
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800"><span className="text-slate-500">Recomendación</span><p className="mt-1">{diagnostico.recomendacion}</p></div>
           {diagnostico.urgencia === 'NULA' ? <p className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">Evaluación informativa. No se guardó en el historial.</p> : <p className={`p-3 rounded-xl font-semibold ${guardado ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-amber-50 text-amber-700'}`}>{guardando ? 'Guardando automáticamente...' : guardado ? 'Triaje guardado automáticamente' : 'No se pudo guardar automáticamente'}</p>}
           <div className="grid sm:grid-cols-2 gap-3"><button type="button" onClick={descargar} className="py-3 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 font-semibold">Descargar reporte</button><button type="button" onClick={nuevoTriaje} className="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold">Nuevo triaje</button></div>

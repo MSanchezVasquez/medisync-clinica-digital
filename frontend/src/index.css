@@ -8,3 +8,129 @@ body { margin: 0; min-width: 320px; min-height: 100vh; background: #f8fafc; }
 button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 button, a { outline-offset: 3px; }
 ::selection { background: #99f6e4; color: #134e4a; }
+
+.tecnica-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.tecnica-card {
+  position: relative;
+  display: flex;
+  min-height: 10.5rem;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 0.55rem;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  padding: 0.9rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.05);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, background 180ms ease;
+}
+
+.tecnica-card:hover {
+  transform: translateY(-2px);
+  border-color: #5eead4;
+  box-shadow: 0 12px 24px rgba(13, 148, 136, 0.12);
+}
+
+.tecnica-card:has(input:focus-visible) {
+  outline: 3px solid rgba(20, 184, 166, 0.3);
+  outline-offset: 2px;
+}
+
+.tecnica-card--active {
+  border-color: #0d9488;
+  background: linear-gradient(145deg, #f0fdfa, #ecfeff);
+  box-shadow: 0 12px 28px rgba(13, 148, 136, 0.18), inset 0 0 0 1px #14b8a6;
+}
+
+.tecnica-card__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tecnica-card__nombre {
+  color: #0f172a;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.tecnica-card__recomendada {
+  border-radius: 999px;
+  padding: 0.15rem 0.4rem;
+  background: #0f766e;
+  color: white;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tecnica-card__ejemplos {
+  width: fit-content;
+  border-radius: 0.5rem;
+  padding: 0.2rem 0.45rem;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.67rem;
+  font-weight: 700;
+}
+
+.tecnica-card--active .tecnica-card__ejemplos {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.tecnica-card__descripcion {
+  color: #64748b;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.tecnica-card__selector {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  display: grid;
+  width: 1.15rem;
+  height: 1.15rem;
+  place-items: center;
+  border: 2px solid #94a3b8;
+  border-radius: 999px;
+  background: white;
+}
+
+.tecnica-card--active .tecnica-card__selector { border-color: #0d9488; }
+.tecnica-card--active .tecnica-card__selector span { width: 0.55rem; height: 0.55rem; border-radius: 999px; background: #0d9488; }
+
+.tecnica-ayuda {
+  margin-top: 0.75rem;
+  border-left: 3px solid #14b8a6;
+  border-radius: 0.6rem;
+  padding: 0.65rem 0.8rem;
+  background: rgba(240, 253, 250, 0.9);
+  color: #475569;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.dark .tecnica-card { border-color: #334155; background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.88)); }
+.dark .tecnica-card:hover { border-color: #2dd4bf; }
+.dark .tecnica-card--active { border-color: #2dd4bf; background: linear-gradient(145deg, rgba(19, 78, 74, 0.62), rgba(8, 47, 73, 0.55)); }
+.dark .tecnica-card__nombre { color: #f8fafc; }
+.dark .tecnica-card__descripcion { color: #cbd5e1; }
+.dark .tecnica-card__ejemplos { background: #334155; color: #cbd5e1; }
+.dark .tecnica-card--active .tecnica-card__ejemplos { background: rgba(20, 184, 166, 0.2); color: #99f6e4; }
+.dark .tecnica-card__selector { border-color: #64748b; background: #0f172a; }
+.dark .tecnica-ayuda { background: rgba(19, 78, 74, 0.25); color: #cbd5e1; }
+
+@media (max-width: 640px) {
+  .tecnica-grid { grid-template-columns: 1fr; }
+  .tecnica-card { min-height: 8.5rem; }
+}

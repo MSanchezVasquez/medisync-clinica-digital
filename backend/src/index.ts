@@ -5,13 +5,14 @@ import cors from "cors";
 import { AiService, ErrorIA } from "./ai/aiService.js";
 import { listarPrompts } from "./ai/promptLibrary.js";
 import { TECNICAS_PROMPT, type TecnicaPrompt } from "./ai/types.js";
+import { obtenerGeminiApiKey } from "./config.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const apiKey = process.env.GEMINI_API_KEY?.trim() || "";
+const apiKey = obtenerGeminiApiKey();
 console.log(`Estado de API Key: ${apiKey ? "CONFIGURADA" : "NO CONFIGURADA"}`);
 const aiService = new AiService(apiKey);
 const dataDirectory = new URL("../data/", import.meta.url);

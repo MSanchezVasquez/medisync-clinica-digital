@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { obtenerPrompt } from "./promptLibrary.js";
 import type { DiagnosticoIA, TecnicaPrompt, Urgencia } from "./types.js";
 
@@ -47,34 +46,46 @@ export const normalizarErrorProveedor = (error: unknown): ErrorIA => {
 };
 
 export class AiService {
-  private readonly cliente: GoogleGenerativeAI;
-
   constructor(
     private readonly apiKey: string,
-    private readonly modelo = process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash",
+    private readonly modelo = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash",
     private readonly timeoutMs = Number(process.env.AI_TIMEOUT_MS || 30000),
-  ) {
-    this.cliente = new GoogleGenerativeAI(apiKey);
-  }
+  ) {}
 
   async evaluar(sintomasEntrada: unknown, tecnica: TecnicaPrompt = "few-shot"): Promise<DiagnosticoIA> {
     const sintomas = validarSintomas(sintomasEntrada);
     if (!this.apiKey) throw new ErrorIA("CONFIGURACION", 503, "El servidor no tiene configurada la API key de Gemini.");
     const prompt = obtenerPrompt(tecnica).construir(sintomas);
-    const modelo = this.cliente.getGenerativeModel({ model: this.modelo });
-    let temporizador: ReturnType<typeof setTimeout> | undefined;
+    const controlador = new AbortController();
+    const temporizador = setTimeout(() => controlador.abort(), this.timeoutMs);
     try {
-      const resultado = await Promise.race([
-        modelo.generateContent(prompt),
-        new Promise<never>((_resolve, reject) => {
-          temporizador = setTimeout(() => reject(new ErrorIA("TIMEOUT", 504, "El servicio de IA tardó demasiado en responder.")), this.timeoutMs);
-        }),
-      ]);
-      return parsearRespuestaIA(resultado.response.text());
+      for (let intento = 0; intento < 2; intento += 1) {
+        const respuesta = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.modelo)}:generateContent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": this.apiKey },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" },
+          }),
+          signal: controlador.signal,
+        });
+        if (respuesta.ok) {
+          const datos = await respuesta.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+          const texto = datos.candidates?.[0]?.content?.parts?.map((parte) => parte.text ?? "").join("") ?? "";
+          return parsearRespuestaIA(texto);
+        }
+        if (intento === 0 && [429, 503].includes(respuesta.status)) {
+          await new Promise((resolve) => setTimeout(resolve, 750));
+          continue;
+        }
+        throw new Error(`Gemini HTTP ${respuesta.status}`);
+      }
+      throw new Error("Gemini no respondió después del reintento");
     } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") throw new ErrorIA("TIMEOUT", 504, "El servicio de IA tardó demasiado en responder.");
       throw normalizarErrorProveedor(error);
     } finally {
-      if (temporizador) clearTimeout(temporizador);
+      clearTimeout(temporizador);
     }
   }
 }
