@@ -7,6 +7,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.json ./
+COPY prisma.config.ts ./
+COPY prisma ./prisma
 COPY src ./src
 RUN pnpm run build
 
@@ -19,6 +21,8 @@ ENV NODE_ENV=production
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./
 
 RUN mkdir -p /app/data
 EXPOSE 3000

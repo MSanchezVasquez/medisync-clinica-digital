@@ -18,6 +18,9 @@ const LayoutConHeader = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+const RutaProtegida = ({ children }: { children: React.ReactNode }) =>
+  localStorage.getItem('medisync_auth') === 'true' ? children : <Navigate to="/login" replace />;
+
 function App() {
   return (
     <BrowserRouter>
@@ -30,8 +33,8 @@ function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
 
             <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/triaje" element={<Triaje />} />
+            <Route path="/dashboard" element={<RutaProtegida><Dashboard /></RutaProtegida>} />
+            <Route path="/triaje" element={<RutaProtegida><Triaje /></RutaProtegida>} />
           </Routes>
         </LayoutConHeader>
       </div>

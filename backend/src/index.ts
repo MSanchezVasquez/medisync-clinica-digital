@@ -1,11 +1,21 @@
 import "dotenv/config";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
 import express, { type Request, type Response } from "express";
 import cors from "cors";
 import { AiService, ErrorIA } from "./ai/aiService.js";
 import { listarPrompts } from "./ai/promptLibrary.js";
 import { TECNICAS_PROMPT, type TecnicaPrompt } from "./ai/types.js";
 import { obtenerGeminiApiKey } from "./config.js";
+import {
+  actualizarTriaje,
+  crearTriaje,
+  eliminarTriaje,
+  listarTriajes,
+  obtenerMetricasDashboard,
+  persistenciaConfigurada,
+  tipoPersistencia,
+  verificarPersistencia,
+} from "./triajes/repository.js";
+import type { DatosTriaje } from "./triajes/types.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,23 +25,7 @@ app.use(express.json());
 const apiKey = obtenerGeminiApiKey();
 console.log(`Estado de API Key: ${apiKey ? "CONFIGURADA" : "NO CONFIGURADA"}`);
 const aiService = new AiService(apiKey);
-const dataDirectory = new URL("../data/", import.meta.url);
-const triajesFile = new URL("triajes.json", dataDirectory);
-
-type UrgenciaGuardable = "ALTA" | "MEDIA" | "BAJA";
-type TriajeGuardado = {
-  id: string;
-  nombreCompleto: string;
-  dni: string;
-  edad: number;
-  peso: number;
-  altura: number;
-  sintomas: string;
-  urgencia: UrgenciaGuardable;
-  especialidad: string;
-  recomendacion: string;
-  creadoEn: string;
-};
+console.log(`Persistencia: ${tipoPersistencia()}`);
 
 const datosTriajeValidos = (datos: Record<string, unknown>): boolean =>
   typeof datos.nombreCompleto === "string" &&
@@ -45,33 +39,17 @@ const datosTriajeValidos = (datos: Record<string, unknown>): boolean =>
   typeof datos.urgencia === "string" && ["ALTA", "MEDIA", "BAJA"].includes(datos.urgencia) &&
   typeof datos.especialidad === "string" && typeof datos.recomendacion === "string";
 
-const leerTriajes = async (): Promise<TriajeGuardado[]> => {
-  try {
-    const guardados = JSON.parse(await readFile(triajesFile, "utf8")) as Partial<TriajeGuardado>[];
-    return guardados.map((t) => ({
-      ...t,
-      id: t.id ?? crypto.randomUUID(),
-      nombreCompleto: t.nombreCompleto ?? "Paciente sin registrar",
-      dni: t.dni ?? "",
-      edad: t.edad ?? 0,
-      peso: t.peso ?? 0,
-      altura: t.altura ?? 0,
-      sintomas: t.sintomas ?? "",
-      urgencia: t.urgencia ?? "BAJA",
-      especialidad: t.especialidad ?? "Sin registrar",
-      recomendacion: t.recomendacion ?? "Sin registrar",
-      creadoEn: t.creadoEn ?? new Date().toISOString(),
-    }));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw error;
-  }
-};
-
-const guardarTriajes = async (triajes: TriajeGuardado[]): Promise<void> => {
-  await mkdir(dataDirectory, { recursive: true });
-  await writeFile(triajesFile, JSON.stringify(triajes, null, 2), "utf8");
-};
+const extraerDatosTriaje = (body: Record<string, unknown>): DatosTriaje => ({
+  nombreCompleto: (body.nombreCompleto as string).trim(),
+  dni: body.dni as string,
+  edad: body.edad as number,
+  peso: body.peso as number,
+  altura: body.altura as number,
+  sintomas: (body.sintomas as string).trim(),
+  urgencia: body.urgencia as DatosTriaje["urgencia"],
+  especialidad: body.especialidad as string,
+  recomendacion: body.recomendacion as string,
+});
 
 const limpiarHtml = (valor: string): string => valor
   .replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&")
@@ -154,10 +132,7 @@ app.get("/api/ia/prompts", (_req: Request, res: Response): void => {
 
 app.get("/api/dashboard", async (_req: Request, res: Response): Promise<void> => {
   try {
-    const triajes = await leerTriajes();
-    const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-    const deHoy = triajes.filter((t) => new Date(t.creadoEn).toLocaleDateString("en-CA", { timeZone: "America/Lima" }) === hoy);
-    res.json({ pacientesHoy: deHoy.length, urgenciasAltas: deHoy.filter((t) => t.urgencia === "ALTA").length });
+    res.json(await obtenerMetricasDashboard());
   } catch (error) {
     console.error("Error al consultar el dashboard:", error);
     res.status(500).json({ error: "No se pudieron consultar las métricas." });
@@ -166,8 +141,7 @@ app.get("/api/dashboard", async (_req: Request, res: Response): Promise<void> =>
 
 app.get("/api/triajes", async (_req: Request, res: Response): Promise<void> => {
   try {
-    const triajes = await leerTriajes();
-    res.json(triajes.sort((a, b) => b.creadoEn.localeCompare(a.creadoEn)));
+    res.json(await listarTriajes());
   } catch {
     res.status(500).json({ error: "No se pudo consultar el historial." });
   }
@@ -179,60 +153,63 @@ app.post("/api/triajes", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   try {
-    const triajes = await leerTriajes();
-    const nuevo: TriajeGuardado = {
-      id: crypto.randomUUID(), nombreCompleto: req.body.nombreCompleto.trim(), dni: req.body.dni,
-      edad: req.body.edad, peso: req.body.peso, altura: req.body.altura,
-      sintomas: req.body.sintomas.trim(), urgencia: req.body.urgencia,
-      especialidad: req.body.especialidad, recomendacion: req.body.recomendacion,
-      creadoEn: new Date().toISOString(),
-    };
-    triajes.push(nuevo);
-    await guardarTriajes(triajes);
-    res.status(201).json(nuevo);
-  } catch {
+    res.status(201).json(await crearTriaje(extraerDatosTriaje(req.body)));
+  } catch (error) {
+    console.error("Error al guardar el triaje:", error);
     res.status(500).json({ error: "No se pudo guardar el triaje." });
   }
 });
 
 app.put("/api/triajes/:id", async (req: Request, res: Response): Promise<void> => {
+  const id = req.params.id;
+  if (typeof id !== "string" || !id) {
+    res.status(400).json({ error: "El identificador del triaje no es válido." });
+    return;
+  }
   if (!datosTriajeValidos(req.body)) {
     res.status(400).json({ error: "Los datos del triaje no son válidos." });
     return;
   }
   try {
-    const triajes = await leerTriajes();
-    const indice = triajes.findIndex((t) => t.id === req.params.id);
-    if (indice === -1) {
+    const actualizado = await actualizarTriaje(id, extraerDatosTriaje(req.body));
+    if (!actualizado) {
       res.status(404).json({ error: "Triaje no encontrado." });
       return;
     }
-    const actualizado: TriajeGuardado = {
-      ...triajes[indice]!, nombreCompleto: req.body.nombreCompleto.trim(), dni: req.body.dni,
-      edad: req.body.edad, peso: req.body.peso, altura: req.body.altura,
-      sintomas: req.body.sintomas.trim(), urgencia: req.body.urgencia,
-      especialidad: req.body.especialidad, recomendacion: req.body.recomendacion,
-    };
-    triajes[indice] = actualizado;
-    await guardarTriajes(triajes);
     res.json(actualizado);
-  } catch {
+  } catch (error) {
+    console.error("Error al editar el triaje:", error);
     res.status(500).json({ error: "No se pudo editar el triaje." });
   }
 });
 
 app.delete("/api/triajes/:id", async (req: Request, res: Response): Promise<void> => {
+  const id = req.params.id;
+  if (typeof id !== "string" || !id) {
+    res.status(400).json({ error: "El identificador del triaje no es válido." });
+    return;
+  }
   try {
-    const triajes = await leerTriajes();
-    const restantes = triajes.filter((t) => t.id !== req.params.id);
-    if (restantes.length === triajes.length) {
+    if (!await eliminarTriaje(id)) {
       res.status(404).json({ error: "Triaje no encontrado." });
       return;
     }
-    await guardarTriajes(restantes);
     res.status(204).send();
-  } catch {
+  } catch (error) {
+    console.error("Error al eliminar el triaje:", error);
     res.status(500).json({ error: "No se pudo eliminar el triaje." });
+  }
+});
+
+app.get("/api/estado-base-datos", async (_req: Request, res: Response): Promise<void> => {
+  const proveedor = tipoPersistencia();
+  const configurado = proveedor === "supabase-postgresql" && persistenciaConfigurada();
+  try {
+    await verificarPersistencia();
+    res.json({ proveedor, configurado, conectado: true });
+  } catch (error) {
+    console.error("Error al verificar la base de datos:", error);
+    res.status(503).json({ proveedor, configurado, conectado: false });
   }
 });
 
