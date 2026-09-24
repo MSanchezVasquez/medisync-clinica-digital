@@ -393,7 +393,7 @@ app.post("/api/webhook/whatsapp", async (req, res) => {
   }
 });
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(
     `Servidor Backend de MediSync corriendo en http://localhost:${PORT} y expuesto a la red local.`,
   );
