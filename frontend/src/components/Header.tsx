@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from './ThemeToggle';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const ProfileDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
-  // Cierra el menú si se hace clic fuera del componente
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -17,6 +17,13 @@ const ProfileDropdown = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Función para manejar el cierre de sesión
+  const handleLogout = () => {
+    localStorage.removeItem('userToken');
+    setIsOpen(false);
+    navigate('/login');
+  };
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -59,7 +66,11 @@ const ProfileDropdown = () => {
             </div>
 
             <div className="border-t border-slate-100 dark:border-slate-800 py-1">
-              <button className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center gap-2">
+              {/* Le agregamos el evento onClick al botón de cerrar sesión */}
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center gap-2"
+              >
                 <span>🚪</span> Cerrar Sesión
               </button>
             </div>
