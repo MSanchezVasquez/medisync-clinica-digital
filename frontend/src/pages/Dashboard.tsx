@@ -42,7 +42,9 @@ export const Dashboard = () => {
 
   useEffect(() => {
     const tareaInicial = window.setTimeout(() => void cargar(), 0);
-    fetch(`${API}/estado-ia`).then((r) => setEstadoIA(r.ok ? 'Activo' : 'No disponible')).catch(() => setEstadoIA('No disponible'));
+    fetch(`${API}/estado-ia`)
+      .then((r) => setEstadoIA(r.ok ? 'Activo' : 'No disponible'))
+      .catch(() => setEstadoIA('No disponible'));
     return () => window.clearTimeout(tareaInicial);
   }, [cargar]);
 
