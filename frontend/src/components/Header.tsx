@@ -1,45 +1,110 @@
-import { NavLink } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from './ThemeToggle';
+import { Link } from 'react-router-dom';
 
-const Logo = () => (
-  <svg
-    className="w-9 h-9"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.8"
-    aria-hidden="true"
-  >
-    <path d="M4 21V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14" />
-    <path d="M9 5V3h6v2M9 10h6M12 7v6M8 21v-4h8v4M7 14h2M15 14h2" />
-  </svg>
-);
+const ProfileDropdown = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cierra el menú si se hace clic fuera del componente
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+      >
+        <div className="w-9 h-9 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+          MS
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute right-0 mt-3 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50"
+          >
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                Moises Sanchez
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                Administrador del Sistema
+              </p>
+            </div>
+
+            <div className="py-1">
+              <button className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                <span>👤</span> Mi Perfil
+              </button>
+              <button className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                <span>⚙️</span> Configuración
+              </button>
+            </div>
+
+            <div className="border-t border-slate-100 dark:border-slate-800 py-1">
+              <button className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center gap-2">
+                <span>🚪</span> Cerrar Sesión
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export const Header = () => {
-  const enlace = ({ isActive }: { isActive: boolean }) =>
-    `px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${isActive ? 'bg-white text-teal-700 shadow-sm dark:bg-teal-600 dark:text-white' : 'text-white/90 hover:bg-white/10'}`;
   return (
-    <header className="sticky top-0 z-40 bg-linear-to-r from-teal-700 via-teal-600 to-cyan-600 dark:from-slate-950 dark:via-slate-900 dark:to-teal-950 shadow-lg border-b border-white/10">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Logo />
-            MediSync Perú
-          </h1>
-          <p className="text-teal-50/80 text-sm mt-1">
-            Gestión hospitalaria y pre-triaje automatizado
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <nav className="flex gap-2">
-            <NavLink to="/dashboard" className={enlace}>
-              Inicio
-            </NavLink>
-            <NavLink to="/triaje" className={enlace}>
-              Triaje
-            </NavLink>
-          </nav>
-          <ThemeToggle />
+    <header className="sticky top-0 z-40 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Lado izquierdo: Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xl">+</span>
+            </div>
+            <h1 className="text-xl font-bold text-slate-800 dark:text-white">MediSync Perú</h1>
+          </div>
+
+          {/* Lado derecho: Navegación y Acciones */}
+          <div className="flex items-center gap-4">
+            <nav className="hidden md:flex gap-4 mr-2">
+              <Link
+                to="/"
+                className="text-sm font-medium text-slate-600 hover:text-teal-600 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
+              >
+                Inicio
+              </Link>
+              <Link
+                to="/triaje"
+                className="text-sm font-medium bg-teal-600/10 text-teal-700 hover:bg-teal-600/20 dark:bg-teal-900/30 dark:text-teal-400 px-3 py-1 rounded-md transition-colors"
+              >
+                Triaje
+              </Link>
+            </nav>
+
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden md:block"></div>
+
+            <ThemeToggle />
+            <ProfileDropdown />
+          </div>
         </div>
       </div>
     </header>
