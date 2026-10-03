@@ -5,10 +5,10 @@ services:
     ports:
       - "3005:3000"
     environment:
-      - WAHA_API_KEY=MediSync_SecretKey_2026
-      - WAHA_DASHBOARD_USERNAME=admin
-      - WAHA_DASHBOARD_PASSWORD=MediSync_Password_2026
-      - WHATSAPP_SWAGGER_USERNAME=admin
-      - WHATSAPP_SWAGGER_PASSWORD=MediSync_Password_2026
+      - WAHA_API_KEY=${WAHA_API_KEY:?Configure WAHA_API_KEY in backend/.env}
+      - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME:-admin}
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD:?Configure WAHA_DASHBOARD_PASSWORD in backend/.env}
+      - WHATSAPP_SWAGGER_USERNAME=${WHATSAPP_SWAGGER_USERNAME:-admin}
+      - WHATSAPP_SWAGGER_PASSWORD=${WHATSAPP_SWAGGER_PASSWORD:?Configure WHATSAPP_SWAGGER_PASSWORD in backend/.env}
       - WAHA_WEBHOOK_URL=http://host.docker.internal:3000/api/webhook/whatsapp
       - WAHA_WEBHOOK_EVENTS=message

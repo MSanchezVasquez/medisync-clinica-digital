@@ -11,3 +11,29 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Urgencia {
+  ALTA
+  MEDIA
+  BAJA
+}
+
+model Triaje {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombreCompleto String    @map("nombre_completo") @db.VarChar(200)
+  dni            String    @db.VarChar(8)
+  edad           Int
+  peso           Float
+  altura         Float
+  sintomas       String
+  urgencia       Urgencia
+  especialidad   String    @db.VarChar(150)
+  recomendacion  String
+  creadoEn       DateTime  @default(now()) @map("creado_en") @db.Timestamptz(3)
+  actualizadoEn  DateTime  @default(now()) @updatedAt @map("actualizado_en") @db.Timestamptz(3)
+
+  @@index([dni])
+  @@index([creadoEn])
+  @@index([urgencia, creadoEn])
+  @@map("triajes")
+}

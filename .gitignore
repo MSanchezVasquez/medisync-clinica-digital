@@ -3,8 +3,6 @@ node_modules/
 .pnpm-store/
 backend/node_modules/
 frontend/node_modules/
-__pycache__/
-*.py[cod]
 
 # Archivos de entorno
 .env

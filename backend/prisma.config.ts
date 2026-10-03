@@ -8,5 +8,8 @@ export default defineConfig({
   migrations: {
     path: "prisma/migrations",
   },
-  datasource: process.env["DATABASE_URL"] ? { url: process.env["DATABASE_URL"] } : {},
+  // Prisma CLI usa la conexión directa; Express usa la API REST de Supabase.
+  datasource: process.env["DIRECT_URL"]
+    ? { url: process.env["DIRECT_URL"] }
+    : {},
 });
