@@ -4,6 +4,7 @@ import { useGSAP } from '@gsap/react';
 import { toast } from 'sonner';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { descargarInformeTriaje } from '../utils/informeTriaje';
+import voiceIcon from '../assets/voice.png';
 
 type DiagnosticoIA = {
   urgencia: 'ALTA' | 'MEDIA' | 'BAJA' | 'NULA';
@@ -16,6 +17,18 @@ type TecnicaPrompt = 'zero-shot' | 'one-shot' | 'few-shot';
 type TriajeEdicion = {
   id: string; dni: string; edad: number; peso: number; altura: number; sintomas: string;
 };
+type EventoVoz = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+type ReconocimientoVoz = {
+  lang: string;
+  interimResults: boolean;
+  onstart: (() => void) | null;
+  onresult: ((evento: EventoVoz) => void) | null;
+  onerror: ((evento: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type ConstructorReconocimientoVoz = new () => ReconocimientoVoz;
 
 const TECNICAS: Array<{ id: TecnicaPrompt; nombre: string; ejemplos: string; descripcion: string; recomendada?: boolean }> = [
   { id: 'zero-shot', nombre: 'Zero-Shot', ejemplos: 'Sin ejemplos', descripcion: 'La IA analiza el caso usando únicamente las instrucciones clínicas.' },
@@ -43,11 +56,54 @@ export const Triaje = () => {
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
+  const [escuchando, setEscuchando] = useState(false);
+  const recognitionRef = useRef<ReconocimientoVoz | null>(null);
+  const textoPrevioRef = useRef('');
   const containerRef = useRef<HTMLElement>(null);
   const resultadoRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => { gsap.from('.gsap-card', { y: 24, opacity: 0, duration: 0.55, stagger: 0.15 }); }, { scope: containerRef });
   useGSAP(() => { if (diagnostico) gsap.from(resultadoRef.current, { y: 18, opacity: 0, scale: 0.97, duration: 0.45 }); }, [diagnostico]);
+
+  const iniciarDictado = () => {
+    if (escuchando && recognitionRef.current) {
+      recognitionRef.current.stop();
+      return;
+    }
+    const win = window as unknown as {
+      SpeechRecognition?: ConstructorReconocimientoVoz;
+      webkitSpeechRecognition?: ConstructorReconocimientoVoz;
+    };
+    const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error('Su navegador no soporta el dictado por voz.');
+      return;
+    }
+    const reconocimiento = new SpeechRecognition();
+    recognitionRef.current = reconocimiento;
+    reconocimiento.lang = 'es-PE';
+    reconocimiento.interimResults = true;
+    textoPrevioRef.current = sintomas;
+    reconocimiento.onstart = () => {
+      setEscuchando(true);
+      toast.info('Escuchando... hable ahora.');
+    };
+    reconocimiento.onresult = (evento) => {
+      let transcripcionActual = '';
+      for (let indice = 0; indice < evento.results.length; indice += 1) {
+        transcripcionActual += evento.results[indice]?.[0]?.transcript ?? '';
+      }
+      const espacio = textoPrevioRef.current.length > 0 ? ' ' : '';
+      setSintomas(textoPrevioRef.current + espacio + transcripcionActual);
+    };
+    reconocimiento.onerror = (evento) => {
+      console.error('Error de voz:', evento.error);
+      toast.error('Ocurrió un error al capturar el audio.');
+      setEscuchando(false);
+    };
+    reconocimiento.onend = () => setEscuchando(false);
+    reconocimiento.start();
+  };
 
   const consultarDni = async (): Promise<string | null> => {
     if (!/^\d{8}$/.test(dni)) {
@@ -140,7 +196,7 @@ export const Triaje = () => {
             <div><label className={etiqueta}>Peso (kg)</label><input type="number" min="1" step="0.1" value={peso} onChange={(e) => setPeso(e.target.value)} className={campo} required /></div>
             <div><label className={etiqueta}>Altura (cm)</label><input type="number" min="30" max="250" step="0.1" value={altura} onChange={(e) => setAltura(e.target.value)} className={campo} required /></div>
           </div>
-          <div><label htmlFor="sintomas" className={etiqueta}>Síntomas del paciente</label><textarea id="sintomas" rows={5} value={sintomas} onChange={(e) => setSintomas(e.target.value)} className={`${campo} resize-none`} required /></div>
+          <div><label htmlFor="sintomas" className={etiqueta}>Síntomas del paciente</label><div className="relative"><textarea id="sintomas" rows={5} value={sintomas} onChange={(e) => setSintomas(e.target.value)} className={`${campo} resize-none pr-12`} required /><button type="button" onClick={iniciarDictado} aria-label={escuchando ? 'Detener dictado' : 'Dictar síntomas por voz'} title={escuchando ? 'Detener dictado' : 'Dictar por voz'} className={`absolute bottom-3 right-3 flex items-center justify-center rounded-full p-2 transition-all ${escuchando ? 'bg-red-500 animate-pulse shadow-lg shadow-red-500/50' : 'bg-teal-100 hover:bg-teal-600 dark:bg-teal-900/50'}`}><img src={voiceIcon} alt="" className={`h-5 w-5 object-contain ${escuchando ? 'brightness-0 invert' : 'opacity-70 dark:invert dark:opacity-80'}`} /></button></div></div>
           <fieldset>
             <legend className={etiqueta}>Técnica de análisis con IA</legend>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Seleccione cómo se le proporcionarán ejemplos a Gemini antes de analizar los síntomas.</p>

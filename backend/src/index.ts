@@ -18,7 +18,7 @@ import {
 import type { DatosTriaje } from "./triajes/types.js";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
 app.use(cors());
 app.use(express.json());
 
@@ -32,12 +32,19 @@ const datosTriajeValidos = (datos: Record<string, unknown>): boolean =>
   datos.nombreCompleto.trim().length >= 3 &&
   typeof datos.dni === "string" &&
   /^\d{8}$/.test(datos.dni) &&
-  typeof datos.edad === "number" && datos.edad >= 0 && datos.edad <= 120 &&
-  typeof datos.peso === "number" && datos.peso > 0 &&
-  typeof datos.altura === "number" && datos.altura > 0 &&
-  typeof datos.sintomas === "string" && datos.sintomas.trim().length > 0 &&
-  typeof datos.urgencia === "string" && ["ALTA", "MEDIA", "BAJA"].includes(datos.urgencia) &&
-  typeof datos.especialidad === "string" && typeof datos.recomendacion === "string";
+  typeof datos.edad === "number" &&
+  datos.edad >= 0 &&
+  datos.edad <= 120 &&
+  typeof datos.peso === "number" &&
+  datos.peso > 0 &&
+  typeof datos.altura === "number" &&
+  datos.altura > 0 &&
+  typeof datos.sintomas === "string" &&
+  datos.sintomas.trim().length > 0 &&
+  typeof datos.urgencia === "string" &&
+  ["ALTA", "MEDIA", "BAJA"].includes(datos.urgencia) &&
+  typeof datos.especialidad === "string" &&
+  typeof datos.recomendacion === "string";
 
 const extraerDatosTriaje = (body: Record<string, unknown>): DatosTriaje => ({
   nombreCompleto: (body.nombreCompleto as string).trim(),
@@ -51,80 +58,118 @@ const extraerDatosTriaje = (body: Record<string, unknown>): DatosTriaje => ({
   recomendacion: body.recomendacion as string,
 });
 
-const limpiarHtml = (valor: string): string => valor
-  .replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&")
-  .replace(/&quot;/gi, '"').replace(/&#039;|&apos;/gi, "'").replace(/\s+/g, " ").trim();
+const limpiarHtml = (valor: string): string =>
+  valor
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#039;|&apos;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
 
-app.post("/api/consultar-dni", async (req: Request, res: Response): Promise<void> => {
-  const dni = typeof req.body.dni === "string" ? req.body.dni.trim() : "";
-  if (!/^\d{8}$/.test(dni)) {
-    res.status(400).json({ error: "El DNI debe contener exactamente 8 dígitos." });
-    return;
-  }
-  try {
-    const url = "https://eldni.com/pe/buscar-datos-por-dni";
-    const headers = {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36",
-      Accept: "text/html,application/xhtml+xml",
-    };
-    const inicial = await fetch(url, { headers });
-    if (!inicial.ok) {
-      res.status(502).json({ error: "No se pudo iniciar una sesión con el servicio de DNI." });
+app.post(
+  "/api/consultar-dni",
+  async (req: Request, res: Response): Promise<void> => {
+    const dni = typeof req.body.dni === "string" ? req.body.dni.trim() : "";
+    if (!/^\d{8}$/.test(dni)) {
+      res
+        .status(400)
+        .json({ error: "El DNI debe contener exactamente 8 dígitos." });
       return;
     }
-    const formularioHtml = await inicial.text();
-    const token = formularioHtml.match(/name=["']_token["'][^>]*value=["']([^"']+)["']/i)?.[1];
-    const cookies = inicial.headers.getSetCookie().map((c) => c.split(";", 1)[0]).filter(Boolean).join("; ");
-    if (!token || !cookies) {
-      res.status(502).json({ error: "El servicio de DNI no entregó un token o una sesión válidos." });
-      return;
-    }
-    const formulario = new FormData();
-    formulario.append("dni", dni);
-    formulario.append("_token", token);
-    const respuesta = await fetch(url, {
-      method: "POST",
-      headers: { ...headers, Referer: url, Cookie: cookies },
-      body: formulario,
-    });
-    if (!respuesta.ok) {
-      res.status(502).json({ error: "El servicio externo de DNI no respondió correctamente." });
-      return;
-    }
-    const html = await respuesta.text();
-    let nombreCompleto = "";
-    for (const fila of html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
-      const columnas = [...fila[1]!.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((c) => limpiarHtml(c[1] ?? ""));
-      if (columnas.length >= 4 && columnas[0] === dni) {
-        nombreCompleto = [columnas[1], columnas[2], columnas[3]].filter(Boolean).join(" ");
-        break;
+    try {
+      const url = "https://eldni.com/pe/buscar-datos-por-dni";
+      const headers = {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
+      };
+      const inicial = await fetch(url, { headers });
+      if (!inicial.ok) {
+        res.status(502).json({
+          error: "No se pudo iniciar una sesión con el servicio de DNI.",
+        });
+        return;
       }
+      const formularioHtml = await inicial.text();
+      const token = formularioHtml.match(
+        /name=["']_token["'][^>]*value=["']([^"']+)["']/i,
+      )?.[1];
+      const cookies = inicial.headers
+        .getSetCookie()
+        .map((c) => c.split(";", 1)[0])
+        .filter(Boolean)
+        .join("; ");
+      if (!token || !cookies) {
+        res.status(502).json({
+          error: "El servicio de DNI no entregó un token o una sesión válidos.",
+        });
+        return;
+      }
+      const formulario = new FormData();
+      formulario.append("dni", dni);
+      formulario.append("_token", token);
+      const respuesta = await fetch(url, {
+        method: "POST",
+        headers: { ...headers, Referer: url, Cookie: cookies },
+        body: formulario,
+      });
+      if (!respuesta.ok) {
+        res.status(502).json({
+          error: "El servicio externo de DNI no respondió correctamente.",
+        });
+        return;
+      }
+      const html = await respuesta.text();
+      let nombreCompleto = "";
+      for (const fila of html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
+        const columnas = [
+          ...fila[1]!.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi),
+        ].map((c) => limpiarHtml(c[1] ?? ""));
+        if (columnas.length >= 4 && columnas[0] === dni) {
+          nombreCompleto = [columnas[1], columnas[2], columnas[3]]
+            .filter(Boolean)
+            .join(" ");
+          break;
+        }
+      }
+      if (!nombreCompleto) {
+        res
+          .status(404)
+          .json({ error: "No se encontraron datos para el DNI ingresado." });
+        return;
+      }
+      res.json({ nombreCompleto });
+    } catch (error) {
+      console.error("Error al consultar el DNI:", error);
+      res
+        .status(502)
+        .json({ error: "No se pudo consultar el servicio externo de DNI." });
     }
-    if (!nombreCompleto) {
-      res.status(404).json({ error: "No se encontraron datos para el DNI ingresado." });
+  },
+);
+
+app.get(
+  "/api/estado-ia",
+  async (_req: Request, res: Response): Promise<void> => {
+    if (!apiKey) {
+      res.status(503).json({ activo: false });
       return;
     }
-    res.json({ nombreCompleto });
-  } catch (error) {
-    console.error("Error al consultar el DNI:", error);
-    res.status(502).json({ error: "No se pudo consultar el servicio externo de DNI." });
-  }
-});
-
-app.get("/api/estado-ia", async (_req: Request, res: Response): Promise<void> => {
-  if (!apiKey) {
-    res.status(503).json({ activo: false });
-    return;
-  }
-  try {
-    const respuesta = await fetch("https://generativelanguage.googleapis.com/v1beta/models", {
-      headers: { "x-goog-api-key": apiKey },
-    });
-    res.status(respuesta.ok ? 200 : 503).json({ activo: respuesta.ok });
-  } catch {
-    res.status(503).json({ activo: false });
-  }
-});
+    try {
+      const respuesta = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models",
+        {
+          headers: { "x-goog-api-key": apiKey },
+        },
+      );
+      res.status(respuesta.ok ? 200 : 503).json({ activo: respuesta.ok });
+    } catch {
+      res.status(503).json({ activo: false });
+    }
+  },
+);
 
 app.get("/api/ia/prompts", (_req: Request, res: Response): void => {
   res.json(listarPrompts());
@@ -216,18 +261,76 @@ app.get("/api/estado-base-datos", async (_req: Request, res: Response): Promise<
 app.post("/api/triaje", async (req: Request, res: Response): Promise<void> => {
   const tecnicaSolicitada = req.body.tecnica ?? "few-shot";
   if (!TECNICAS_PROMPT.includes(tecnicaSolicitada)) {
-    res.status(400).json({ error: "La técnica debe ser zero-shot, one-shot o few-shot." });
+    res
+      .status(400)
+      .json({ error: "La técnica debe ser zero-shot, one-shot o few-shot." });
     return;
   }
   try {
     const tecnica = tecnicaSolicitada as TecnicaPrompt;
     const respuesta = await aiService.evaluar(req.body.sintomas, tecnica);
-    res.json({ ...respuesta, tecnica, promptId: listarPrompts().find((prompt) => prompt.tecnica === tecnica)?.id });
+    res.json({
+      ...respuesta,
+      tecnica,
+      promptId: listarPrompts().find((prompt) => prompt.tecnica === tecnica)
+        ?.id,
+    });
   } catch (error) {
-    const errorSeguro = error instanceof ErrorIA ? error : new ErrorIA("CONEXION", 500, "No se pudo procesar el pre-triaje.");
+    const errorSeguro =
+      error instanceof ErrorIA
+        ? error
+        : new ErrorIA("CONEXION", 500, "No se pudo procesar el pre-triaje.");
     console.error(`Error IA [${errorSeguro.codigo}]: ${errorSeguro.message}`);
+    if (["CUOTA", "CONEXION", "TIMEOUT"].includes(errorSeguro.codigo)) res.set("Retry-After", "3");
     res.status(errorSeguro.status).json({ error: errorSeguro.message, codigo: errorSeguro.codigo });
   }
 });
 
-app.listen(PORT, () => console.log(`Servidor Backend de MediSync corriendo en http://localhost:${PORT}`));
+const procesarMensajeWhatsApp = async (telefono: string, sintomas: string): Promise<void> => {
+  try {
+    const diagnostico = await aiService.evaluar(sintomas, "few-shot");
+    const mensaje = [
+      "MediSync Perú - Pre-triaje automático",
+      "",
+      `Urgencia: ${diagnostico.urgencia}`,
+      `Especialidad sugerida: ${diagnostico.especialidad}`,
+      `Recomendación: ${diagnostico.recomendacion}`,
+      "",
+      "Esta orientación no reemplaza la evaluación de un profesional de salud. Si presenta una emergencia, acuda a un servicio de urgencias.",
+    ].join("\n");
+
+    const baseWaha = (process.env.WAHA_BASE_URL || "http://127.0.0.1:3005").replace(/\/$/, "");
+    const apiKeyWaha = process.env.WAHA_API_KEY?.trim();
+    if (!apiKeyWaha) throw new Error("WAHA_API_KEY no está configurada.");
+    const respuesta = await fetch(`${baseWaha}/api/sendText`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": apiKeyWaha },
+      body: JSON.stringify({
+        session: process.env.WAHA_SESSION || "bot-medisync",
+        chatId: telefono,
+        text: mensaje,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!respuesta.ok) throw new Error(`WAHA respondió ${respuesta.status}.`);
+    console.info("Evaluación de WhatsApp procesada y respuesta enviada.");
+  } catch (error) {
+    console.error("No se pudo completar el pre-triaje por WhatsApp:", error);
+  }
+};
+
+app.post("/api/webhook/whatsapp", (req: Request, res: Response): void => {
+  res.status(200).send("Webhook recibido");
+  const { event, payload } = req.body ?? {};
+  if (event !== "message" || payload?.fromMe) return;
+  const telefono = typeof payload?.from === "string" ? payload.from : "";
+  const sintomas = typeof payload?.body === "string" ? payload.body.trim() : "";
+  if (!telefono || !sintomas) return;
+  void procesarMensajeWhatsApp(telefono, sintomas);
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(
+    `Servidor Backend de MediSync corriendo en http://localhost:${PORT} y expuesto a la red local.`,
+  );
+});

@@ -74,12 +74,18 @@ Crea `backend/.env` con el siguiente contenido:
 ```env
 GEMINI_API_KEY=TU_API_KEY
 GEMINI_MODEL=gemini-3.8-flash
+GEMINI_FALLBACK_MODELS=gemini-2.5-flash
+AI_TIMEOUT_MS=45000
+AI_ATTEMPT_TIMEOUT_MS=15000
+AI_MAX_ATTEMPTS=4
 SUPABASE_URL=https://PROJECT_REF.supabase.co
 SUPABASE_SECRET_KEY=TU_SECRET_KEY
 DIRECT_URL=postgresql://postgres:CONTRASENA@db.PROJECT_REF.supabase.co:5432/postgres?sslmode=require
 ```
 
 El archivo `.env` está excluido de Git y no debe subirse al repositorio.
+
+Las consultas a Gemini reintentan automáticamente errores temporales `408`, `429` y `5xx` con espera exponencial. El último intento usa el modelo estable configurado en `GEMINI_FALLBACK_MODELS`, y la respuesta se exige mediante un esquema JSON para evitar resultados incompletos.
 
 En Supabase, copia los valores desde **Project Settings**:
 
@@ -147,6 +153,16 @@ docker compose down
 ```
 
 El directorio `backend/data` se monta únicamente para conservar el modo local cuando Supabase no está configurado.
+
+### WhatsApp con WAHA (opcional)
+
+La integración de WhatsApp usa un servicio WAHA aparte y envía cada mensaje recibido al backend para evaluarlo con Gemini. Copia las variables WAHA de `backend/.env.example` a `backend/.env` y reemplaza los valores de ejemplo por credenciales seguras. Con el backend ya iniciado, levanta WAHA desde la raíz:
+
+```bash
+docker compose --env-file backend/.env -f waha-compose.yml up -d
+```
+
+La API de WAHA queda disponible en `http://localhost:3005`. No publiques el archivo `backend/.env` ni reutilices las credenciales de ejemplo.
 
 La comparación de técnicas está incorporada directamente en `http://localhost:5173/triaje`. La explicación técnica del avance está en `docs/AVANCE_2_IA.md` y la biblioteca completa en `docs/PROMPT_LIBRARY.md`.
 
