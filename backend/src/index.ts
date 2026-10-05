@@ -344,51 +344,64 @@ app.post("/api/triaje", async (req: Request, res: Response): Promise<void> => {
 
 // Endpoint Webhook para escuchar eventos de WAHA
 app.post("/api/webhook/whatsapp", async (req, res) => {
-  // 1. Responder inmediatamente a WAHA
   res.status(200).send("Webhook recibido");
 
   const body = req.body;
 
-  // ¡Recuperamos el vigía para que nunca más haya silencio!
-  console.log(`\n🔔 [DIAGNÓSTICO] Evento recibido: ${body?.event}`);
-
-  // 2. Filtro relajado (exactamente el que funcionó la vez anterior)
   if (body?.event === "message" && !body?.payload?.fromMe) {
     const telefonoPaciente = body.payload.from;
-    const sintomasTexto = body.payload.body;
+    const mensajeTexto = body.payload.body.toLowerCase();
 
-    console.log(`🚨 NUEVO PACIENTE EN TRIAJE 🚨`);
-    console.log(`📱 Número: ${telefonoPaciente}`);
-    console.log(`📝 Síntomas: "${sintomasTexto}"`);
+    const palabrasClaveSalud = [
+      'dolor',
+      'fiebre',
+      'síntoma',
+      'sintoma',
+      'urgencia',
+      'triaje',
+      'clínica',
+      'clinica',
+      'doctor',
+      'emergencia',
+    ];
 
-    try {
-      console.log("🧠 Evaluando síntomas con Gemini AI...");
+    const esMensajeMedico = palabrasClaveSalud.some((palabra) =>
+      mensajeTexto.includes(palabra),
+    );
 
-      const resultadoIA = await aiService.evaluar(sintomasTexto, "few-shot");
-      console.log(
-        `✅ Evaluación lista -> Urgencia: ${resultadoIA.urgencia} | Especialidad: ${resultadoIA.especialidad}`,
-      );
+    if (esMensajeMedico) {
+       try {
+         console.log('Evaluando síntomas con Gemini AI...');
 
-      const mensajeRespuesta = `🏥 *MediSync Perú - Pre-Triaje Automático*\n\nHemos analizado tus síntomas:\n\n🚨 *Nivel de Urgencia:* ${resultadoIA.urgencia}\n👨‍⚕️ *Especialidad Sugerida:* ${resultadoIA.especialidad}\n📋 *Recomendación:* ${resultadoIA.recomendacion}\n\n_Por favor, acércate a recepción con este mensaje._`;
+         const resultadoIA = await aiService.evaluar(mensajeTexto, 'few-shot');
+         console.log(
+           `✅ Evaluación lista -> Urgencia: ${resultadoIA.urgencia} | Especialidad: ${resultadoIA.especialidad}`,
+         );
 
-      await fetch("http://127.0.0.1:3005/api/sendText", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Api-Key": "MediSync_SecretKey_2026",
-        },
-        body: JSON.stringify({
-          session: "bot-medisync",
-          chatId: telefonoPaciente,
-          text: mensajeRespuesta,
-        }),
-      });
+         const mensajeRespuesta = `🏥 *MediSync Perú - Pre-Triaje Automático*\n\nHemos analizado tus síntomas:\n\n🚨 *Nivel de Urgencia:* ${resultadoIA.urgencia}\n👨‍⚕️ *Especialidad Sugerida:* ${resultadoIA.especialidad}\n📋 *Recomendación:* ${resultadoIA.recomendacion}\n\n_Por favor, acércate a recepción con este mensaje._`;
 
-      console.log(
-        "💬 Respuesta enviada exitosamente por WhatsApp al paciente.",
-      );
-    } catch (error) {
-      console.error("❌ Error en el flujo de IA o WhatsApp:", error);
+         await fetch('http://127.0.0.1:3005/api/sendText', {
+           method: 'POST',
+           headers: {
+             'Content-Type': 'application/json',
+             'X-Api-Key': 'MediSync_SecretKey_2026',
+           },
+           body: JSON.stringify({
+             session: 'bot-medisync',
+             chatId: telefonoPaciente,
+             text: mensajeRespuesta,
+           }),
+         });
+
+         console.log(
+           '💬 Respuesta enviada exitosamente por WhatsApp al paciente.',
+         );
+       } catch (error) {
+         console.error('❌ Error en el flujo de IA o WhatsApp:', error);
+       }
+    } else {
+      console.log(`Mensaje ignorado (no médico): "${mensajeTexto}" de ${telefonoPaciente}`);
+      
     }
   }
 });
