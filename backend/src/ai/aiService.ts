@@ -39,6 +39,7 @@ export const parsearRespuestaIA = (texto: string): DiagnosticoIA => {
 };
 
 export const normalizarErrorProveedor = (error: unknown): ErrorIA => {
+  console.error('🚨 Error crudo del proveedor IA:', error);
   if (error instanceof ErrorIA) return error;
   const mensaje = error instanceof Error ? error.message.toLowerCase() : "";
   if (mensaje.includes("429") || mensaje.includes("quota") || mensaje.includes("rate limit")) return new ErrorIA("CUOTA", 429, "El servicio de IA alcanzó temporalmente su límite de solicitudes.");
@@ -51,15 +52,24 @@ export class AiService {
 
   constructor(
     private readonly apiKey: string,
-    private readonly modelo = process.env.GEMINI_MODEL?.trim() || "gemini-3.6-flash",
+    private readonly modelo = process.env.GEMINI_MODEL?.trim() ||
+      'gemini-3.6-flash',
     private readonly timeoutMs = Number(process.env.AI_TIMEOUT_MS || 30000),
   ) {
     this.cliente = new GoogleGenerativeAI(apiKey);
   }
 
-  async evaluar(sintomasEntrada: unknown, tecnica: TecnicaPrompt = "few-shot"): Promise<DiagnosticoIA> {
+  async evaluar(
+    sintomasEntrada: unknown,
+    tecnica: TecnicaPrompt = 'few-shot',
+  ): Promise<DiagnosticoIA> {
     const sintomas = validarSintomas(sintomasEntrada);
-    if (!this.apiKey) throw new ErrorIA("CONFIGURACION", 503, "El servidor no tiene configurada la API key de Gemini.");
+    if (!this.apiKey)
+      throw new ErrorIA(
+        'CONFIGURACION',
+        503,
+        'El servidor no tiene configurada la API key de Gemini.',
+      );
     const prompt = obtenerPrompt(tecnica).construir(sintomas);
     const modelo = this.cliente.getGenerativeModel({ model: this.modelo });
     let temporizador: ReturnType<typeof setTimeout> | undefined;
@@ -67,7 +77,17 @@ export class AiService {
       const resultado = await Promise.race([
         modelo.generateContent(prompt),
         new Promise<never>((_resolve, reject) => {
-          temporizador = setTimeout(() => reject(new ErrorIA("TIMEOUT", 504, "El servicio de IA tardó demasiado en responder.")), this.timeoutMs);
+          temporizador = setTimeout(
+            () =>
+              reject(
+                new ErrorIA(
+                  'TIMEOUT',
+                  504,
+                  'El servicio de IA tardó demasiado en responder.',
+                ),
+              ),
+            this.timeoutMs,
+          );
         }),
       ]);
       return parsearRespuestaIA(resultado.response.text());
