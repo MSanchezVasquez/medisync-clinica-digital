@@ -1,23 +1,30 @@
-import "dotenv/config";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import express, { type Request, type Response } from "express";
-import cors from "cors";
-import { AiService, ErrorIA } from "./ai/aiService.js";
-import { listarPrompts } from "./ai/promptLibrary.js";
-import { TECNICAS_PROMPT, type TecnicaPrompt } from "./ai/types.js";
+import 'dotenv/config';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import express, { type Request, type Response } from 'express';
+import cors from 'cors';
+import { Pool } from 'pg';
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { AiService, ErrorIA } from './ai/aiService.js';
+import { listarPrompts } from './ai/promptLibrary.js';
+import { TECNICAS_PROMPT, type TecnicaPrompt } from './ai/types.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const apiKey = process.env.GEMINI_API_KEY?.trim() || "";
-console.log(`Estado de API Key: ${apiKey ? "CONFIGURADA" : "NO CONFIGURADA"}`);
-const aiService = new AiService(apiKey);
-const dataDirectory = new URL("../data/", import.meta.url);
-const triajesFile = new URL("triajes.json", dataDirectory);
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
-type UrgenciaGuardable = "ALTA" | "MEDIA" | "BAJA";
+const apiKey = process.env.GEMINI_API_KEY?.trim() || '';
+console.log(`Estado de API Key: ${apiKey ? 'CONFIGURADA' : 'NO CONFIGURADA'}`);
+const aiService = new AiService(apiKey);
+const dataDirectory = new URL('../data/', import.meta.url);
+const triajesFile = new URL('triajes.json', dataDirectory);
+
+type UrgenciaGuardable = 'ALTA' | 'MEDIA' | 'BAJA';
 type TriajeGuardado = {
   id: string;
   nombreCompleto: string;
@@ -33,85 +40,85 @@ type TriajeGuardado = {
 };
 
 const datosTriajeValidos = (datos: Record<string, unknown>): boolean =>
-  typeof datos.nombreCompleto === "string" &&
+  typeof datos.nombreCompleto === 'string' &&
   datos.nombreCompleto.trim().length >= 3 &&
-  typeof datos.dni === "string" &&
+  typeof datos.dni === 'string' &&
   /^\d{8}$/.test(datos.dni) &&
-  typeof datos.edad === "number" &&
+  typeof datos.edad === 'number' &&
   datos.edad >= 0 &&
   datos.edad <= 120 &&
-  typeof datos.peso === "number" &&
+  typeof datos.peso === 'number' &&
   datos.peso > 0 &&
-  typeof datos.altura === "number" &&
+  typeof datos.altura === 'number' &&
   datos.altura > 0 &&
-  typeof datos.sintomas === "string" &&
+  typeof datos.sintomas === 'string' &&
   datos.sintomas.trim().length > 0 &&
-  typeof datos.urgencia === "string" &&
-  ["ALTA", "MEDIA", "BAJA"].includes(datos.urgencia) &&
-  typeof datos.especialidad === "string" &&
-  typeof datos.recomendacion === "string";
+  typeof datos.urgencia === 'string' &&
+  ['ALTA', 'MEDIA', 'BAJA'].includes(datos.urgencia) &&
+  typeof datos.especialidad === 'string' &&
+  typeof datos.recomendacion === 'string';
 
 const leerTriajes = async (): Promise<TriajeGuardado[]> => {
   try {
     const guardados = JSON.parse(
-      await readFile(triajesFile, "utf8"),
+      await readFile(triajesFile, 'utf8'),
     ) as Partial<TriajeGuardado>[];
     return guardados.map((t) => ({
       ...t,
       id: t.id ?? crypto.randomUUID(),
-      nombreCompleto: t.nombreCompleto ?? "Paciente sin registrar",
-      dni: t.dni ?? "",
+      nombreCompleto: t.nombreCompleto ?? 'Paciente sin registrar',
+      dni: t.dni ?? '',
       edad: t.edad ?? 0,
       peso: t.peso ?? 0,
       altura: t.altura ?? 0,
-      sintomas: t.sintomas ?? "",
-      urgencia: t.urgencia ?? "BAJA",
-      especialidad: t.especialidad ?? "Sin registrar",
-      recomendacion: t.recomendacion ?? "Sin registrar",
+      sintomas: t.sintomas ?? '',
+      urgencia: t.urgencia ?? 'BAJA',
+      especialidad: t.especialidad ?? 'Sin registrar',
+      recomendacion: t.recomendacion ?? 'Sin registrar',
       creadoEn: t.creadoEn ?? new Date().toISOString(),
     }));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
     throw error;
   }
 };
 
 const guardarTriajes = async (triajes: TriajeGuardado[]): Promise<void> => {
   await mkdir(dataDirectory, { recursive: true });
-  await writeFile(triajesFile, JSON.stringify(triajes, null, 2), "utf8");
+  await writeFile(triajesFile, JSON.stringify(triajes, null, 2), 'utf8');
 };
 
 const limpiarHtml = (valor: string): string =>
   valor
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
     .replace(/&quot;/gi, '"')
     .replace(/&#039;|&apos;/gi, "'")
-    .replace(/\s+/g, " ")
+    .replace(/\s+/g, ' ')
     .trim();
 
 app.post(
-  "/api/consultar-dni",
+  '/api/consultar-dni',
   async (req: Request, res: Response): Promise<void> => {
-    const dni = typeof req.body.dni === "string" ? req.body.dni.trim() : "";
+    const dni = typeof req.body.dni === 'string' ? req.body.dni.trim() : '';
     if (!/^\d{8}$/.test(dni)) {
       res
         .status(400)
-        .json({ error: "El DNI debe contener exactamente 8 dígitos." });
+        .json({ error: 'El DNI debe contener exactamente 8 dígitos.' });
       return;
     }
     try {
-      const url = "https://eldni.com/pe/buscar-datos-por-dni";
+      const url = 'https://eldni.com/pe/buscar-datos-por-dni';
       const headers = {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml",
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml',
       };
       const inicial = await fetch(url, { headers });
       if (!inicial.ok) {
         res.status(502).json({
-          error: "No se pudo iniciar una sesión con el servicio de DNI.",
+          error: 'No se pudo iniciar una sesión con el servicio de DNI.',
         });
         return;
       }
@@ -121,60 +128,60 @@ app.post(
       )?.[1];
       const cookies = inicial.headers
         .getSetCookie()
-        .map((c) => c.split(";", 1)[0])
+        .map((c) => c.split(';', 1)[0])
         .filter(Boolean)
-        .join("; ");
+        .join('; ');
       if (!token || !cookies) {
         res.status(502).json({
-          error: "El servicio de DNI no entregó un token o una sesión válidos.",
+          error: 'El servicio de DNI no entregó un token o una sesión válidos.',
         });
         return;
       }
       const formulario = new FormData();
-      formulario.append("dni", dni);
-      formulario.append("_token", token);
+      formulario.append('dni', dni);
+      formulario.append('_token', token);
       const respuesta = await fetch(url, {
-        method: "POST",
+        method: 'POST',
         headers: { ...headers, Referer: url, Cookie: cookies },
         body: formulario,
       });
       if (!respuesta.ok) {
         res.status(502).json({
-          error: "El servicio externo de DNI no respondió correctamente.",
+          error: 'El servicio externo de DNI no respondió correctamente.',
         });
         return;
       }
       const html = await respuesta.text();
-      let nombreCompleto = "";
+      let nombreCompleto = '';
       for (const fila of html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
         const columnas = [
           ...fila[1]!.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi),
-        ].map((c) => limpiarHtml(c[1] ?? ""));
+        ].map((c) => limpiarHtml(c[1] ?? ''));
         if (columnas.length >= 4 && columnas[0] === dni) {
           nombreCompleto = [columnas[1], columnas[2], columnas[3]]
             .filter(Boolean)
-            .join(" ");
+            .join(' ');
           break;
         }
       }
       if (!nombreCompleto) {
         res
           .status(404)
-          .json({ error: "No se encontraron datos para el DNI ingresado." });
+          .json({ error: 'No se encontraron datos para el DNI ingresado.' });
         return;
       }
       res.json({ nombreCompleto });
     } catch (error) {
-      console.error("Error al consultar el DNI:", error);
+      console.error('Error al consultar el DNI:', error);
       res
         .status(502)
-        .json({ error: "No se pudo consultar el servicio externo de DNI." });
+        .json({ error: 'No se pudo consultar el servicio externo de DNI.' });
     }
   },
 );
 
 app.get(
-  "/api/estado-ia",
+  '/api/estado-ia',
   async (_req: Request, res: Response): Promise<void> => {
     if (!apiKey) {
       res.status(503).json({ activo: false });
@@ -182,9 +189,9 @@ app.get(
     }
     try {
       const respuesta = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models",
+        'https://generativelanguage.googleapis.com/v1beta/models',
         {
-          headers: { "x-goog-api-key": apiKey },
+          headers: { 'x-goog-api-key': apiKey },
         },
       );
       res.status(respuesta.ok ? 200 : 503).json({ activo: respuesta.ok });
@@ -194,47 +201,47 @@ app.get(
   },
 );
 
-app.get("/api/ia/prompts", (_req: Request, res: Response): void => {
+app.get('/api/ia/prompts', (_req: Request, res: Response): void => {
   res.json(listarPrompts());
 });
 
 app.get(
-  "/api/dashboard",
+  '/api/dashboard',
   async (_req: Request, res: Response): Promise<void> => {
     try {
       const triajes = await leerTriajes();
-      const hoy = new Date().toLocaleDateString("en-CA", {
-        timeZone: "America/Lima",
+      const hoy = new Date().toLocaleDateString('en-CA', {
+        timeZone: 'America/Lima',
       });
       const deHoy = triajes.filter(
         (t) =>
-          new Date(t.creadoEn).toLocaleDateString("en-CA", {
-            timeZone: "America/Lima",
+          new Date(t.creadoEn).toLocaleDateString('en-CA', {
+            timeZone: 'America/Lima',
           }) === hoy,
       );
       res.json({
         pacientesHoy: deHoy.length,
-        urgenciasAltas: deHoy.filter((t) => t.urgencia === "ALTA").length,
+        urgenciasAltas: deHoy.filter((t) => t.urgencia === 'ALTA').length,
       });
     } catch (error) {
-      console.error("Error al consultar el dashboard:", error);
-      res.status(500).json({ error: "No se pudieron consultar las métricas." });
+      console.error('Error al consultar el dashboard:', error);
+      res.status(500).json({ error: 'No se pudieron consultar las métricas.' });
     }
   },
 );
 
-app.get("/api/triajes", async (_req: Request, res: Response): Promise<void> => {
+app.get('/api/triajes', async (_req: Request, res: Response): Promise<void> => {
   try {
     const triajes = await leerTriajes();
     res.json(triajes.sort((a, b) => b.creadoEn.localeCompare(a.creadoEn)));
   } catch {
-    res.status(500).json({ error: "No se pudo consultar el historial." });
+    res.status(500).json({ error: 'No se pudo consultar el historial.' });
   }
 });
 
-app.post("/api/triajes", async (req: Request, res: Response): Promise<void> => {
+app.post('/api/triajes', async (req: Request, res: Response): Promise<void> => {
   if (!datosTriajeValidos(req.body)) {
-    res.status(400).json({ error: "Los datos del triaje no son válidos." });
+    res.status(400).json({ error: 'Los datos del triaje no son válidos.' });
     return;
   }
   try {
@@ -256,22 +263,22 @@ app.post("/api/triajes", async (req: Request, res: Response): Promise<void> => {
     await guardarTriajes(triajes);
     res.status(201).json(nuevo);
   } catch {
-    res.status(500).json({ error: "No se pudo guardar el triaje." });
+    res.status(500).json({ error: 'No se pudo guardar el triaje.' });
   }
 });
 
 app.put(
-  "/api/triajes/:id",
+  '/api/triajes/:id',
   async (req: Request, res: Response): Promise<void> => {
     if (!datosTriajeValidos(req.body)) {
-      res.status(400).json({ error: "Los datos del triaje no son válidos." });
+      res.status(400).json({ error: 'Los datos del triaje no son válidos.' });
       return;
     }
     try {
       const triajes = await leerTriajes();
       const indice = triajes.findIndex((t) => t.id === req.params.id);
       if (indice === -1) {
-        res.status(404).json({ error: "Triaje no encontrado." });
+        res.status(404).json({ error: 'Triaje no encontrado.' });
         return;
       }
       const actualizado: TriajeGuardado = {
@@ -290,35 +297,35 @@ app.put(
       await guardarTriajes(triajes);
       res.json(actualizado);
     } catch {
-      res.status(500).json({ error: "No se pudo editar el triaje." });
+      res.status(500).json({ error: 'No se pudo editar el triaje.' });
     }
   },
 );
 
 app.delete(
-  "/api/triajes/:id",
+  '/api/triajes/:id',
   async (req: Request, res: Response): Promise<void> => {
     try {
       const triajes = await leerTriajes();
       const restantes = triajes.filter((t) => t.id !== req.params.id);
       if (restantes.length === triajes.length) {
-        res.status(404).json({ error: "Triaje no encontrado." });
+        res.status(404).json({ error: 'Triaje no encontrado.' });
         return;
       }
       await guardarTriajes(restantes);
       res.status(204).send();
     } catch {
-      res.status(500).json({ error: "No se pudo eliminar el triaje." });
+      res.status(500).json({ error: 'No se pudo eliminar el triaje.' });
     }
   },
 );
 
-app.post("/api/triaje", async (req: Request, res: Response): Promise<void> => {
-  const tecnicaSolicitada = req.body.tecnica ?? "few-shot";
+app.post('/api/triaje', async (req: Request, res: Response): Promise<void> => {
+  const tecnicaSolicitada = req.body.tecnica ?? 'few-shot';
   if (!TECNICAS_PROMPT.includes(tecnicaSolicitada)) {
     res
       .status(400)
-      .json({ error: "La técnica debe ser zero-shot, one-shot o few-shot." });
+      .json({ error: 'La técnica debe ser zero-shot, one-shot o few-shot.' });
     return;
   }
   try {
@@ -334,7 +341,7 @@ app.post("/api/triaje", async (req: Request, res: Response): Promise<void> => {
     const errorSeguro =
       error instanceof ErrorIA
         ? error
-        : new ErrorIA("CONEXION", 500, "No se pudo procesar el pre-triaje.");
+        : new ErrorIA('CONEXION', 500, 'No se pudo procesar el pre-triaje.');
     console.error(`Error IA [${errorSeguro.codigo}]: ${errorSeguro.message}`);
     res
       .status(errorSeguro.status)
@@ -343,12 +350,12 @@ app.post("/api/triaje", async (req: Request, res: Response): Promise<void> => {
 });
 
 // Endpoint Webhook para escuchar eventos de WAHA
-app.post("/api/webhook/whatsapp", async (req, res) => {
-  res.status(200).send("Webhook recibido");
+app.post('/api/webhook/whatsapp', async (req, res) => {
+  res.status(200).send('Webhook recibido');
 
   const body = req.body;
 
-  if (body?.event === "message" && !body?.payload?.fromMe) {
+  if (body?.event === 'message' && !body?.payload?.fromMe) {
     const telefonoPaciente = body.payload.from;
     const mensajeTexto = body.payload.body.toLowerCase();
 
@@ -370,43 +377,57 @@ app.post("/api/webhook/whatsapp", async (req, res) => {
     );
 
     if (esMensajeMedico) {
-       try {
-         console.log('Evaluando síntomas con Gemini AI...');
+      try {
+        console.log('Evaluando síntomas con Gemini AI...');
 
-         const resultadoIA = await aiService.evaluar(mensajeTexto, 'few-shot');
-         console.log(
-           `✅ Evaluación lista -> Urgencia: ${resultadoIA.urgencia} | Especialidad: ${resultadoIA.especialidad}`,
-         );
+        const resultadoIA = await aiService.evaluar(mensajeTexto, 'few-shot');
+        console.log(
+          `✅ Evaluación lista -> Urgencia: ${resultadoIA.urgencia} | Especialidad: ${resultadoIA.especialidad}`,
+        );
 
-         const mensajeRespuesta = `🏥 *MediSync Perú - Pre-Triaje Automático*\n\nHemos analizado tus síntomas:\n\n🚨 *Nivel de Urgencia:* ${resultadoIA.urgencia}\n👨‍⚕️ *Especialidad Sugerida:* ${resultadoIA.especialidad}\n📋 *Recomendación:* ${resultadoIA.recomendacion}\n\n_Por favor, acércate a recepción con este mensaje._`;
+        // 3. NUEVO: Guardamos el diagnóstico de WhatsApp directo en PostgreSQL
+        console.log('💾 Guardando resultado en PostgreSQL...');
+        const triajeGuardado = await prisma.triaje.create({
+          data: {
+            telefono: telefonoPaciente,
+            sintomas: mensajeTexto,
+            urgencia: resultadoIA.urgencia,
+            especialidad: resultadoIA.especialidad,
+            recomendacion: resultadoIA.recomendacion,
+          },
+        });
+        console.log(`✅ Registro exitoso en BD. ID: ${triajeGuardado.id}`);
 
-         await fetch('http://127.0.0.1:3005/api/sendText', {
-           method: 'POST',
-           headers: {
-             'Content-Type': 'application/json',
-             'X-Api-Key': 'MediSync_SecretKey_2026',
-           },
-           body: JSON.stringify({
-             session: 'bot-medisync',
-             chatId: telefonoPaciente,
-             text: mensajeRespuesta,
-           }),
-         });
+        const mensajeRespuesta = `🏥 *MediSync Perú - Pre-Triaje Automático*\n\nHemos analizado tus síntomas:\n\n🚨 *Nivel de Urgencia:* ${resultadoIA.urgencia}\n👨‍⚕️ *Especialidad Sugerida:* ${resultadoIA.especialidad}\n📋 *Recomendación:* ${resultadoIA.recomendacion}\n\n_Por favor, acércate a recepción con este mensaje. Ticket: ${triajeGuardado.id.split('-')[0]}_`;
 
-         console.log(
-           '💬 Respuesta enviada exitosamente por WhatsApp al paciente.',
-         );
-       } catch (error) {
-         console.error('❌ Error en el flujo de IA o WhatsApp:', error);
-       }
+        await fetch('http://127.0.0.1:3005/api/sendText', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Api-Key': 'MediSync_SecretKey_2026',
+          },
+          body: JSON.stringify({
+            session: 'bot-medisync',
+            chatId: telefonoPaciente,
+            text: mensajeRespuesta,
+          }),
+        });
+
+        console.log(
+          '💬 Respuesta enviada exitosamente por WhatsApp al paciente.',
+        );
+      } catch (error) {
+        console.error('❌ Error en el flujo de IA o WhatsApp:', error);
+      }
     } else {
-      console.log(`Mensaje ignorado (no médico): "${mensajeTexto}" de ${telefonoPaciente}`);
-      
+      console.log(
+        `Mensaje ignorado (no médico): "${mensajeTexto}" de ${telefonoPaciente}`,
+      );
     }
   }
 });
 
-app.listen(Number(PORT), "0.0.0.0", () => {
+app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(
     `Servidor Backend de MediSync corriendo en http://localhost:${PORT} y expuesto a la red local.`,
   );
