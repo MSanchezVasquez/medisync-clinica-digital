@@ -357,7 +357,14 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
 
   if (body?.event === 'message' && !body?.payload?.fromMe) {
     const telefonoPaciente = body.payload.from;
-    const mensajeTexto = body.payload.body.toLowerCase();
+
+    if (
+      telefonoPaciente.includes('@g.us') ||
+      telefonoPaciente.includes('@broadcast')
+    ) {
+      return;
+    }
+    const mensajeTexto = body.payload.body?.toLowerCase() || '';
 
     const palabrasClaveSalud = [
       'dolor',

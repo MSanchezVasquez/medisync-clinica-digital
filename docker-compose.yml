@@ -46,5 +46,20 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: medisync-waha
+    restart: always
+    ports:
+      - "3005:3000"
+    environment:
+      - WAHA_API_KEY=MediSync_SecretKey_2026
+      - WAHA_DASHBOARD_USERNAME=admin
+      - WAHA_DASHBOARD_PASSWORD=MediSync_Password_2026
+      - WHATSAPP_SWAGGER_USERNAME=admin
+      - WHATSAPP_SWAGGER_PASSWORD=MediSync_Password_2026
+      - WAHA_WEBHOOK_URL=http://host.docker.internal:3000/api/webhook/whatsapp
+      - WAHA_WEBHOOK_EVENTS=message
+
 volumes:
   pgdata:
