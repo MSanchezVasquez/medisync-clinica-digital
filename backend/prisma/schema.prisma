@@ -11,7 +11,7 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Rol {
+enum Role {
   ADMIN
   MEDICO
   ENFERMERO
