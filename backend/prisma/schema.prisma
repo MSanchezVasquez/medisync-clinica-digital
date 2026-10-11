@@ -17,16 +17,6 @@ enum Role {
   ENFERMERO
 }
 
-model Triaje {
-  id            String   @id @default(uuid())
-  telefono      String   
-  sintomas      String   @db.Text
-  urgencia      String
-  especialidad  String
-  recomendacion String   @db.Text
-  fecha         DateTime @default(now())
-}
-
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -37,4 +27,26 @@ model User {
   activo    Boolean  @default(true)
   creadoEn  DateTime @default(now())
   actualizadoEn DateTime @updatedAt
+
+  // Relación: Un médico puede tener múltiples triajes registrados
+  triajes       Triaje[]
+}
+
+model Triaje {
+  id            String   @id @default(uuid())
+  nombreCompleto String?
+  dni           String?
+  edad          Int?
+  peso          Float?
+  altura        Float?
+  telefono      String?  // Opcional para triajes web; presente en los de WhatsApp
+  sintomas      String   @db.Text
+  urgencia      String
+  especialidad  String
+  recomendacion String   @db.Text
+  fecha         DateTime @default(now())
+
+  // Relación con el profesional de la salud que atiende/registra
+  medicoId      String?
+  medico        User?    @relation(fields: [medicoId], references: [id])
 }

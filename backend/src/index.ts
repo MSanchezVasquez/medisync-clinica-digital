@@ -414,68 +414,106 @@ app.get(
   },
 );
 
-app.post('/api/triajes', async (req: Request, res: Response): Promise<void> => {
-  if (!datosTriajeValidos(req.body)) {
-    res.status(400).json({ error: 'Los datos del triaje no son válidos.' });
-    return;
-  }
+app.post('/api/triajes', verificarToken, async (req: Request, res: Response): Promise<void> => {
   try {
-    const triajes = await leerTriajes();
-    const nuevo: TriajeGuardado = {
-      id: crypto.randomUUID(),
-      nombreCompleto: req.body.nombreCompleto.trim(),
-      dni: req.body.dni,
-      edad: req.body.edad,
-      peso: req.body.peso,
-      altura: req.body.altura,
-      sintomas: req.body.sintomas.trim(),
-      urgencia: req.body.urgencia,
-      especialidad: req.body.especialidad,
-      recomendacion: req.body.recomendacion,
-      creadoEn: new Date().toISOString(),
-    };
-    triajes.push(nuevo);
-    await guardarTriajes(triajes);
-    res.status(201).json(nuevo);
-  } catch {
-    res.status(500).json({ error: 'No se pudo guardar el triaje.' });
+    const usuario = (req as any).usuario;
+    const {
+      nombreCompleto,
+      dni,
+      edad,
+      peso,
+      altura,
+      telefono,
+      sintomas,
+      urgencia,
+      especialidad,
+      recomendacion,
+    } = req.body;
+
+    if (!sintomas || !urgencia || !especialidad || !recomendacion) {
+      res
+        .status(400)
+        .json({ error: 'Los datos clínicos diagnósticos son requeridos.' });
+      return;
+    }
+
+    const nuevoTriaje = await prisma.triaje.create({
+      data: {
+        nombreCompleto: nombreCompleto?.trim() || null,
+        dni: dni?.trim() || null,
+        edad: edad ? Number(edad) : null,
+        peso: peso ? Number(peso) : null,
+        altura: altura ? Number(altura) : null,
+        telefono: telefono?.trim() || null,
+        sintomas: sintomas.trim(),
+        urgencia: String(urgencia).toUpperCase(),
+        especialidad: especialidad.trim(),
+        recomendacion: recomendacion.trim(),
+        medicoId: usuario?.id || null, // Asocia automáticamente al médico logueado
+      },
+      include: {
+        medico: {
+          select: {
+            id: true,
+            nombre: true,
+            cmp: true,
+          },
+        },
+      },
+    });
+
+    res.status(201).json(nuevoTriaje);
+  } catch (error) {
+    console.error('Error al crear triaje:', error);
+    res.status(500).json({ error: 'Error interno al registrar el triaje.' });
   }
 });
 
-app.put(
-  '/api/triajes/:id',
-  async (req: Request, res: Response): Promise<void> => {
-    if (!datosTriajeValidos(req.body)) {
-      res.status(400).json({ error: 'Los datos del triaje no son válidos.' });
+// PUT /api/triajes/:id - Actualizar triaje existente
+app.put("/api/triajes/:id", verificarToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = String(req.params.id); // Forzar a string para satisfacer a Prisma
+    const {
+      nombreCompleto,
+      dni,
+      edad,
+      peso,
+      altura,
+      telefono,
+      sintomas,
+      urgencia,
+      especialidad,
+      recomendacion,
+    } = req.body;
+
+    const existe = await prisma.triaje.findUnique({ where: { id } });
+    if (!existe) {
+      res.status(404).json({ error: "El triaje solicitado no existe." });
       return;
     }
-    try {
-      const triajes = await leerTriajes();
-      const indice = triajes.findIndex((t) => t.id === req.params.id);
-      if (indice === -1) {
-        res.status(404).json({ error: 'Triaje no encontrado.' });
-        return;
-      }
-      const actualizado: TriajeGuardado = {
-        ...triajes[indice]!,
-        nombreCompleto: req.body.nombreCompleto.trim(),
-        dni: req.body.dni,
-        edad: req.body.edad,
-        peso: req.body.peso,
-        altura: req.body.altura,
-        sintomas: req.body.sintomas.trim(),
-        urgencia: req.body.urgencia,
-        especialidad: req.body.especialidad,
-        recomendacion: req.body.recomendacion,
-      };
-      triajes[indice] = actualizado;
-      await guardarTriajes(triajes);
-      res.json(actualizado);
-    } catch {
-      res.status(500).json({ error: 'No se pudo editar el triaje.' });
-    }
-  },
-);
+
+    const triajeActualizado = await prisma.triaje.update({
+      where: { id },
+      data: {
+        nombreCompleto: nombreCompleto ? String(nombreCompleto).trim() : null,
+        dni: dni ? String(dni).trim() : null,
+        edad: edad ? Number(edad) : null,
+        peso: peso ? Number(peso) : null,
+        altura: altura ? Number(altura) : null,
+        telefono: telefono ? String(telefono).trim() : null,
+        sintomas: sintomas ? String(sintomas).trim() : existe.sintomas,
+        urgencia: urgencia ? String(urgencia).toUpperCase() : existe.urgencia,
+        especialidad: especialidad ? String(especialidad).trim() : existe.especialidad,
+        recomendacion: recomendacion ? String(recomendacion).trim() : existe.recomendacion,
+      },
+    });
+
+    res.json(triajeActualizado);
+  } catch (error) {
+    console.error("❌ Error al actualizar triaje:", error);
+    res.status(500).json({ error: "Error interno al actualizar el triaje." });
+  }
+});
 
 app.delete(
   '/api/triajes/:id',
