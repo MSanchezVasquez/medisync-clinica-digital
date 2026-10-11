@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { verificarToken } from './middlewares/auth.middleware.js';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import express, { type Request, type Response } from 'express';
+import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
 import { Pool } from 'pg';
 import { PrismaClient } from '@prisma/client';
@@ -100,6 +100,21 @@ const limpiarHtml = (valor: string): string =>
     .replace(/&#039;|&apos;/gi, "'")
     .replace(/\s+/g, ' ')
     .trim();
+
+const requerirRol = (rolesPermitidos: string[]) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const usuario = (req as any).usuario;
+    if (!usuario || !rolesPermitidos.includes(usuario.rol)) {
+      res
+        .status(403)
+        .json({
+          error: 'Acceso denegado: permisos insuficientes para esta operación.',
+        });
+      return;
+    }
+    next();
+  };
+};
 
 // POST /api/auth/login - Autenticación con credenciales institucionales
 app.post(
@@ -593,6 +608,64 @@ app.post('/api/webhook/whatsapp', async (req, res) => {
     }
   }
 });
+
+// POST /api/usuarios - Registrar nuevo médico/personal (Solo ADMIN)
+app.post(
+  "/api/usuarios",
+  verificarToken,
+  requerirRol(["ADMIN"]),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email, password, nombre, cmp, rol } = req.body;
+
+      if (!email || !password || !nombre) {
+        res.status(400).json({ error: "Email, contraseña y nombre son campos obligatorios." });
+        return;
+      }
+
+      // Verificar si el correo ya existe
+      const existe = await prisma.user.findUnique({
+        where: { email: email.toLowerCase().trim() },
+      });
+
+      if (existe) {
+        res.status(409).json({ error: "El correo electrónico ya se encuentra registrado." });
+        return;
+      }
+
+      // Hashear credencial de acceso
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      const nuevoUsuario = await prisma.user.create({
+        data: {
+          email: email.toLowerCase().trim(),
+          password: passwordHash,
+          nombre: nombre.trim(),
+          cmp: cmp ? cmp.trim() : null,
+          rol: rol === "ADMIN" ? "ADMIN" : "MEDICO",
+        },
+        select: {
+          id: true,
+          email: true,
+          nombre: true,
+          cmp: true,
+          rol: true,
+          activo: true,
+          creadoEn: true,
+        },
+      });
+
+      res.status(201).json({
+        mensaje: "Personal médico registrado exitosamente.",
+        usuario: nuevoUsuario,
+      });
+    } catch (error) {
+      console.error("Error al registrar usuario:", error);
+      res.status(500).json({ error: "Error interno al crear el usuario." });
+    }
+  }
+);
 
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(
