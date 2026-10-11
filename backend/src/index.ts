@@ -232,10 +232,43 @@ app.get(
 
 app.get('/api/triajes', async (_req: Request, res: Response): Promise<void> => {
   try {
-    const triajes = await leerTriajes();
-    res.json(triajes.sort((a, b) => b.creadoEn.localeCompare(a.creadoEn)));
-  } catch {
-    res.status(500).json({ error: 'No se pudo consultar el historial.' });
+    const triajes = await prisma.triaje.findMany({
+      orderBy: {
+        fecha: "desc"
+      }
+    })
+
+    res.json(triajes)
+  } catch (error){
+    console.error("Error al consultar triajes en la base de datos: ", error);
+    res.status(500).json({
+      error: "No se pudieron obtener los triajes desde la base de datos"
+    })
+  }
+});
+
+app.get("/api/triajes/:id", async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params;
+
+  if (typeof id !== "string") {
+    res.status(400).json({ error: "ID de triaje inválido o no proporcionado." });
+    return;
+  }
+
+  try {
+    const triaje = await prisma.triaje.findUnique({
+      where: { id },
+    });
+
+    if (!triaje) {
+      res.status(404).json({ error: "Triaje no encontrado." });
+      return;
+    }
+
+    res.json(triaje);
+  } catch (error) {
+    console.error("Error al buscar triaje por ID:", error);
+    res.status(500).json({ error: "Error interno al buscar el triaje." });
   }
 });
 
