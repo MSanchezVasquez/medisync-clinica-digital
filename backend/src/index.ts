@@ -157,6 +157,39 @@ app.post("/api/auth/login", async (req: Request, res: Response): Promise<void> =
   }
 });
 
+// GET /api/auth/me - Obtener perfil del usuario autenticado
+app.get("/api/auth/me", verificarToken, async (req: Request, res: Response): Promise<void> => {
+  if (!req.usuario) {
+    res.status(401).json({ error: "Sesión no válida o no autenticada." });
+    return;
+  }
+
+  try {
+    const usuario = await prisma.user.findUnique({
+      where: { id: req.usuario.id },
+      select: {
+        id: true,
+        email: true,
+        nombre: true,
+        cmp: true,
+        rol: true,
+        activo: true,
+        creadoEn: true,
+      },
+    });
+
+    if (!usuario || !usuario.activo) {
+      res.status(401).json({ error: "Usuario no encontrado o cuenta deshabilitada." });
+      return;
+    }
+
+    res.json(usuario);
+  } catch (error) {
+    console.error("❌ Error al obtener perfil del usuario:", error);
+    res.status(500).json({ error: "Error interno al recuperar perfil del usuario." });
+  }
+});
+
 app.post(
   '/api/consultar-dni',
   async (req: Request, res: Response): Promise<void> => {
