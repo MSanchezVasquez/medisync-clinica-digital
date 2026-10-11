@@ -8,6 +8,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { AiService, ErrorIA } from './ai/aiService.js';
 import { listarPrompts } from './ai/promptLibrary.js';
 import { TECNICAS_PROMPT, type TecnicaPrompt } from './ai/types.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -97,6 +99,62 @@ const limpiarHtml = (valor: string): string =>
     .replace(/&#039;|&apos;/gi, "'")
     .replace(/\s+/g, ' ')
     .trim();
+
+
+// POST /api/auth/login - Autenticación con credenciales institucionales
+app.post("/api/auth/login", async (req: Request, res: Response): Promise<void> => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    res.status(400).json({ error: "Debe ingresar email y contraseña." });
+    return;
+  }
+
+  try {
+    const usuario = await prisma.user.findUnique({
+      where: { email: String(email).toLowerCase().trim() },
+    });
+
+    if (!usuario || !usuario.activo) {
+      res.status(401).json({ error: "Credenciales inválidas o usuario deshabilitado." });
+      return;
+    }
+
+    const passwordValida = await bcrypt.compare(password, usuario.password);
+    if (!passwordValida) {
+      res.status(401).json({ error: "Credenciales inválidas." });
+      return;
+    }
+
+    const jwtSecret = process.env.JWT_SECRET || "medisync_fallback_secret_key";
+    const token = jwt.sign(
+      {
+        id: usuario.id,
+        email: usuario.email,
+        nombre: usuario.nombre,
+        rol: usuario.rol,
+        cmp: usuario.cmp,
+      },
+      jwtSecret,
+      { expiresIn: "8h" }
+    );
+
+    res.json({
+      mensaje: "Acceso autorizado",
+      token,
+      usuario: {
+        id: usuario.id,
+        email: usuario.email,
+        nombre: usuario.nombre,
+        rol: usuario.rol,
+        cmp: usuario.cmp,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error en autenticación:", error);
+    res.status(500).json({ error: "Error interno al procesar el acceso." });
+  }
+});
 
 app.post(
   '/api/consultar-dni',
