@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { verificarToken } from './middlewares/auth.middleware.js';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
@@ -288,7 +289,7 @@ app.get(
   },
 );
 
-app.get('/api/triajes', async (_req: Request, res: Response): Promise<void> => {
+app.get('/api/triajes',verificarToken, async (_req: Request, res: Response): Promise<void> => {
   try {
     const triajes = await prisma.triaje.findMany({
       orderBy: {
@@ -305,7 +306,7 @@ app.get('/api/triajes', async (_req: Request, res: Response): Promise<void> => {
   }
 });
 
-app.get("/api/triajes/:id", async (req: Request, res: Response): Promise<void> => {
+app.get("/api/triajes/:id",verificarToken, async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
 
   if (typeof id !== "string") {
