@@ -101,94 +101,107 @@ const limpiarHtml = (valor: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
-
 // POST /api/auth/login - Autenticación con credenciales institucionales
-app.post("/api/auth/login", async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
+app.post(
+  '/api/auth/login',
+  async (req: Request, res: Response): Promise<void> => {
+    const { email, password } = req.body;
 
-  if (!email || !password) {
-    res.status(400).json({ error: "Debe ingresar email y contraseña." });
-    return;
-  }
-
-  try {
-    const usuario = await prisma.user.findUnique({
-      where: { email: String(email).toLowerCase().trim() },
-    });
-
-    if (!usuario || !usuario.activo) {
-      res.status(401).json({ error: "Credenciales inválidas o usuario deshabilitado." });
+    if (!email || !password) {
+      res.status(400).json({ error: 'Debe ingresar email y contraseña.' });
       return;
     }
 
-    const passwordValida = await bcrypt.compare(password, usuario.password);
-    if (!passwordValida) {
-      res.status(401).json({ error: "Credenciales inválidas." });
-      return;
+    try {
+      const usuario = await prisma.user.findUnique({
+        where: { email: String(email).toLowerCase().trim() },
+      });
+
+      if (!usuario || !usuario.activo) {
+        res
+          .status(401)
+          .json({ error: 'Credenciales inválidas o usuario deshabilitado.' });
+        return;
+      }
+
+      const passwordValida = await bcrypt.compare(password, usuario.password);
+      if (!passwordValida) {
+        res.status(401).json({ error: 'Credenciales inválidas.' });
+        return;
+      }
+
+      const jwtSecret =
+        process.env.JWT_SECRET || 'medisync_fallback_secret_key';
+      const token = jwt.sign(
+        {
+          id: usuario.id,
+          email: usuario.email,
+          nombre: usuario.nombre,
+          rol: usuario.rol,
+          cmp: usuario.cmp,
+        },
+        jwtSecret,
+        { expiresIn: '8h' },
+      );
+
+      res.json({
+        mensaje: 'Acceso autorizado',
+        token,
+        usuario: {
+          id: usuario.id,
+          email: usuario.email,
+          nombre: usuario.nombre,
+          rol: usuario.rol,
+          cmp: usuario.cmp,
+        },
+      });
+    } catch (error) {
+      console.error('❌ Error en autenticación:', error);
+      res.status(500).json({ error: 'Error interno al procesar el acceso.' });
     }
-
-    const jwtSecret = process.env.JWT_SECRET || "medisync_fallback_secret_key";
-    const token = jwt.sign(
-      {
-        id: usuario.id,
-        email: usuario.email,
-        nombre: usuario.nombre,
-        rol: usuario.rol,
-        cmp: usuario.cmp,
-      },
-      jwtSecret,
-      { expiresIn: "8h" }
-    );
-
-    res.json({
-      mensaje: "Acceso autorizado",
-      token,
-      usuario: {
-        id: usuario.id,
-        email: usuario.email,
-        nombre: usuario.nombre,
-        rol: usuario.rol,
-        cmp: usuario.cmp,
-      },
-    });
-  } catch (error) {
-    console.error("❌ Error en autenticación:", error);
-    res.status(500).json({ error: "Error interno al procesar el acceso." });
-  }
-});
+  },
+);
 
 // GET /api/auth/me - Obtener perfil del usuario autenticado
-app.get("/api/auth/me", verificarToken, async (req: Request, res: Response): Promise<void> => {
-  if (!req.usuario) {
-    res.status(401).json({ error: "Sesión no válida o no autenticada." });
-    return;
-  }
-
-  try {
-    const usuario = await prisma.user.findUnique({
-      where: { id: req.usuario.id },
-      select: {
-        id: true,
-        email: true,
-        nombre: true,
-        cmp: true,
-        rol: true,
-        activo: true,
-        creadoEn: true,
-      },
-    });
-
-    if (!usuario || !usuario.activo) {
-      res.status(401).json({ error: "Usuario no encontrado o cuenta deshabilitada." });
+app.get(
+  '/api/auth/me',
+  verificarToken,
+  async (req: Request, res: Response): Promise<void> => {
+    if (!req.usuario) {
+      res.status(401).json({ error: 'Sesión no válida o no autenticada.' });
       return;
     }
 
-    res.json(usuario);
-  } catch (error) {
-    console.error("❌ Error al obtener perfil del usuario:", error);
-    res.status(500).json({ error: "Error interno al recuperar perfil del usuario." });
-  }
-});
+    try {
+      const usuario = await prisma.user.findUnique({
+        where: { id: req.usuario.id },
+        select: {
+          id: true,
+          email: true,
+          nombre: true,
+          cmp: true,
+          rol: true,
+          activo: true,
+          creadoEn: true,
+        },
+      });
+
+      if (!usuario || !usuario.activo) {
+        res
+          .status(401)
+          .json({ error: 'Usuario no encontrado o cuenta deshabilitada.' });
+        return;
+      }
+
+      res.json(usuario);
+    } catch (error) {
+      console.error('❌ Error al obtener perfil del usuario:', error);
+      res
+        .status(500)
+        .json({ error: 'Error interno al recuperar perfil del usuario.' });
+    }
+  },
+);
 
 app.post(
   '/api/consultar-dni',
@@ -299,70 +312,92 @@ app.get('/api/ia/prompts', (_req: Request, res: Response): void => {
 
 app.get(
   '/api/dashboard',
+  verificarToken,
   async (_req: Request, res: Response): Promise<void> => {
     try {
-      const triajes = await leerTriajes();
-      const hoy = new Date().toLocaleDateString('en-CA', {
-        timeZone: 'America/Lima',
-      });
-      const deHoy = triajes.filter(
-        (t) =>
-          new Date(t.creadoEn).toLocaleDateString('en-CA', {
-            timeZone: 'America/Lima',
-          }) === hoy,
+      const ahora = new Date();
+      const iniciHoy = new Date(
+        ahora.getFullYear(),
+        ahora.getMonth(),
+        ahora.getDate(),
       );
-      res.json({
-        pacientesHoy: deHoy.length,
-        urgenciasAltas: deHoy.filter((t) => t.urgencia === 'ALTA').length,
-      });
+
+      const [pacientesHoy, urgenciasAltas] = await Promise.all([
+        prisma.triaje.count({
+          where: {
+            fecha: {
+              gte: iniciHoy,
+            },
+          },
+        }),
+        prisma.triaje.count({
+          where: {
+            urgencia: 'ALTA',
+          },
+        }),
+      ]);
+
+      res.json({ pacientesHoy, urgenciasAltas });
     } catch (error) {
-      console.error('Error al consultar el dashboard:', error);
-      res.status(500).json({ error: 'No se pudieron consultar las métricas.' });
+      console.error('Error al obtener métricas del dashboard:', error);
+      res
+        .status(500)
+        .json({ error: 'Error interno al consultar métricas del sistema.' });
     }
   },
 );
 
-app.get('/api/triajes',verificarToken, async (_req: Request, res: Response): Promise<void> => {
-  try {
-    const triajes = await prisma.triaje.findMany({
-      orderBy: {
-        fecha: "desc"
-      }
-    })
+app.get(
+  '/api/triajes',
+  verificarToken,
+  async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const triajes = await prisma.triaje.findMany({
+        orderBy: {
+          fecha: 'desc',
+        },
+      });
 
-    res.json(triajes)
-  } catch (error){
-    console.error("Error al consultar triajes en la base de datos: ", error);
-    res.status(500).json({
-      error: "No se pudieron obtener los triajes desde la base de datos"
-    })
-  }
-});
+      res.json(triajes);
+    } catch (error) {
+      console.error('Error al consultar triajes en la base de datos: ', error);
+      res.status(500).json({
+        error: 'No se pudieron obtener los triajes desde la base de datos',
+      });
+    }
+  },
+);
 
-app.get("/api/triajes/:id",verificarToken, async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.params;
+app.get(
+  '/api/triajes/:id',
+  verificarToken,
+  async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
 
-  if (typeof id !== "string") {
-    res.status(400).json({ error: "ID de triaje inválido o no proporcionado." });
-    return;
-  }
-
-  try {
-    const triaje = await prisma.triaje.findUnique({
-      where: { id },
-    });
-
-    if (!triaje) {
-      res.status(404).json({ error: "Triaje no encontrado." });
+    if (typeof id !== 'string') {
+      res
+        .status(400)
+        .json({ error: 'ID de triaje inválido o no proporcionado.' });
       return;
     }
 
-    res.json(triaje);
-  } catch (error) {
-    console.error("Error al buscar triaje por ID:", error);
-    res.status(500).json({ error: "Error interno al buscar el triaje." });
-  }
-});
+    try {
+      const triaje = await prisma.triaje.findUnique({
+        where: { id },
+      });
+
+      if (!triaje) {
+        res.status(404).json({ error: 'Triaje no encontrado.' });
+        return;
+      }
+
+      res.json(triaje);
+    } catch (error) {
+      console.error('Error al buscar triaje por ID:', error);
+      res.status(500).json({ error: 'Error interno al buscar el triaje.' });
+    }
+  },
+);
 
 app.post('/api/triajes', async (req: Request, res: Response): Promise<void> => {
   if (!datosTriajeValidos(req.body)) {
