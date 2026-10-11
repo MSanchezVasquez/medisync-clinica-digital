@@ -2,21 +2,44 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 export const Login = () => {
-  const [credenciales, setCredenciales] = useState({ usuario: '', password: '' });
+  const [credenciales, setCredenciales] = useState({ email: '', password: '' });
+  const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCargando(true);
 
-    // Simulación de validación de backend
-    if (credenciales.usuario === 'admin' && credenciales.password === '1234') {
-      // Persistencia local para mantener la sesión activa
-      localStorage.setItem('medisync_auth', 'true');
-      toast.success('Sesión iniciada correctamente');
-      navigate('/dashboard'); // Redirigimos al dashboard tras el éxito
-    } else {
-      toast.error('Credenciales incorrectas. Intente de nuevo.');
+    try {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credenciales),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || 'Credenciales inválidas.');
+        return;
+      }
+
+      // Persistencia del token JWT y datos de sesión
+      localStorage.setItem('medisync_token', data.token);
+      localStorage.setItem('medisync_user', JSON.stringify(data.usuario));
+
+      toast.success(`Bienvenido, ${data.usuario.nombre}`);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error de conexión:', error);
+      toast.error('No se pudo conectar con el servidor clínico.');
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -46,7 +69,7 @@ export const Login = () => {
           </div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Acceso Médico</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-            Ingrese sus credenciales para acceder a MediSync
+            Ingrese sus credenciales institucionales para acceder
           </p>
         </div>
 
@@ -54,15 +77,16 @@ export const Login = () => {
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Usuario
+              Correo Institucional
             </label>
             <input
-              type="text"
-              name="usuario"
-              value={credenciales.usuario}
+              type="email"
+              name="email"
+              value={credenciales.email}
               onChange={handleChange}
-              className="w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300"
-              placeholder="Ej. admin"
+              disabled={cargando}
+              className="w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors duration-300 disabled:opacity-50"
+              placeholder="admin@medisync.pe"
               required
             />
           </div>
@@ -76,7 +100,8 @@ export const Login = () => {
               name="password"
               value={credenciales.password}
               onChange={handleChange}
-              className="w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300"
+              disabled={cargando}
+              className="w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors duration-300 disabled:opacity-50"
               placeholder="••••••••"
               required
             />
@@ -84,14 +109,32 @@ export const Login = () => {
 
           <button
             type="submit"
-            className="w-full bg-linear-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition-all"
+            disabled={cargando}
+            className="w-full bg-linear-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition-all disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            Iniciar Sesión
+            {cargando ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                <span>Validando credenciales...</span>
+              </>
+            ) : (
+              'Iniciar Sesión'
+            )}
           </button>
         </form>
 
         <div className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500">
-          *Para pruebas use: admin / 1234
+          *Sistema de uso exclusivo para personal médico autorizado
         </div>
       </div>
     </div>
