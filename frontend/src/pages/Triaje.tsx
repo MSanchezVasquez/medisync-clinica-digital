@@ -11,16 +11,22 @@ type DiagnosticoIA = {
   especialidad: string;
   recomendacion: string;
 };
+
 type TriajeEdicion = {
   id: string;
-  dni: string;
-  edad: number;
-  peso: number;
-  altura: number;
+  nombreCompleto?: string;
+  dni?: string;
+  edad?: number;
+  peso?: number;
+  altura?: number;
   sintomas: string;
+  telefono?: string;
 };
 
-const API = 'http://localhost:3000/api';
+const API = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : 'http://localhost:3000/api';
+
 const campo =
   'w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500';
 
@@ -28,12 +34,13 @@ export const Triaje = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const recibido = (location.state as { triajeEditar?: TriajeEdicion } | null)?.triajeEditar;
+
   const [idEdicion, setIdEdicion] = useState<string | null>(recibido?.id ?? null);
-  const [nombreCompleto, setNombreCompleto] = useState('');
+  const [nombreCompleto, setNombreCompleto] = useState(recibido?.nombreCompleto ?? '');
   const [dni, setDni] = useState(recibido?.dni ?? '');
-  const [edad, setEdad] = useState(recibido ? String(recibido.edad) : '');
-  const [peso, setPeso] = useState(recibido ? String(recibido.peso) : '');
-  const [altura, setAltura] = useState(recibido ? String(recibido.altura) : '');
+  const [edad, setEdad] = useState(recibido?.edad ? String(recibido.edad) : '');
+  const [peso, setPeso] = useState(recibido?.peso ? String(recibido.peso) : '');
+  const [altura, setAltura] = useState(recibido?.altura ? String(recibido.altura) : '');
   const [sintomas, setSintomas] = useState(recibido?.sintomas ?? '');
   const [diagnostico, setDiagnostico] = useState<DiagnosticoIA | null>(null);
   const [consultandoDni, setConsultandoDni] = useState(false);
@@ -41,11 +48,21 @@ export const Triaje = () => {
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [escuchando, setEscuchando] = useState(false);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const textoPrevioRef = useRef<string>('');
   const containerRef = useRef<HTMLElement>(null);
   const resultadoRef = useRef<HTMLDivElement>(null);
+
+  // Helper para generar cabeceras con token JWT
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('medisync_token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  };
 
   useGSAP(
     () => {
@@ -118,7 +135,7 @@ export const Triaje = () => {
     try {
       const r = await fetch(`${API}/consultar-dni`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ dni }),
       });
       const data = await r.json().catch(() => null);
@@ -137,22 +154,31 @@ export const Triaje = () => {
   const guardarAutomaticamente = async (d: DiagnosticoIA, nombreVerificado: string) => {
     setGuardando(true);
     try {
-      const r = await fetch(idEdicion ? `${API}/triajes/${idEdicion}` : `${API}/triajes`, {
+      const url = idEdicion ? `${API}/triajes/${idEdicion}` : `${API}/triajes`;
+      const r = await fetch(url, {
         method: idEdicion ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          nombreCompleto: nombreVerificado,
+          nombreCompleto: nombreVerificado || nombreCompleto,
           dni,
           edad: Number(edad),
           peso: Number(peso),
           altura: Number(altura),
           sintomas,
-          ...d,
+          urgencia: d.urgencia,
+          especialidad: d.especialidad,
+          recomendacion: d.recomendacion,
         }),
       });
+
       const data = await r.json().catch(() => null);
-      if (!r.ok) throw new Error(data?.error || 'No se pudo guardar el triaje.');
+      if (!r.ok)
+        throw new Error(data?.error || 'No se pudo guardar el triaje en la base de datos.');
       setGuardado(true);
+    } catch (err) {
+      console.error(err);
+      setGuardado(false);
+      throw err;
     } finally {
       setGuardando(false);
     }
@@ -164,23 +190,37 @@ export const Triaje = () => {
     if (!edad || !peso || !altura || Number(edad) < 0 || Number(edad) > 120)
       return toast.warning('Ingrese edad, peso y altura válidos.');
     if (!sintomas.trim()) return toast.warning('Ingrese los síntomas del paciente.');
+
     setCargando(true);
     setDiagnostico(null);
     setGuardado(false);
+
     try {
-      const nombreVerificado = await consultarDni();
-      if (!nombreVerificado) return;
+      // Obtener o reutilizar el nombre verificado
+      let nombreVerificado = nombreCompleto;
+      if (!nombreVerificado.trim()) {
+        const consultado = await consultarDni();
+        if (!consultado) return;
+        nombreVerificado = consultado;
+      }
+
+      // Evaluar síntomas mediante el motor clínico / Gemini
       const r = await fetch(`${API}/triaje`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ sintomas }),
       });
+
       const data = await r.json().catch(() => null);
       if (!r.ok) throw new Error(data?.error || `Error del servidor (${r.status})`);
       setDiagnostico(data);
+
       if (data.urgencia === 'NULA') {
         if (idEdicion) {
-          const eliminacion = await fetch(`${API}/triajes/${idEdicion}`, { method: 'DELETE' });
+          const eliminacion = await fetch(`${API}/triajes/${idEdicion}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+          });
           if (!eliminacion.ok)
             throw new Error('No se pudo retirar el triaje anterior del historial.');
           setIdEdicion(null);
@@ -190,8 +230,8 @@ export const Triaje = () => {
         await guardarAutomaticamente(data, nombreVerificado);
         toast.success(
           idEdicion
-            ? 'Triaje reevaluado y actualizado.'
-            : 'Triaje evaluado y guardado automáticamente.'
+            ? 'Triaje reevaluado y actualizado en el sistema.'
+            : 'Triaje registrado y guardado en PostgreSQL exitosamente.'
         );
       }
     } catch (error) {
@@ -222,20 +262,29 @@ export const Triaje = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const descargar = () =>
-    diagnostico &&
+  const descargar = () => {
+    if (!diagnostico) return;
     descargarInformeTriaje({
-      nombreCompleto,
-      dni,
-      edad: Number(edad),
-      peso: Number(peso),
-      altura: Number(altura),
+      nombreCompleto: nombreCompleto || 'Paciente',
+      dni: dni || 'Sin registrar',
+      edad: Number(edad) || 0,
+      peso: Number(peso) || 0,
+      altura: Number(altura) || 0,
       sintomas,
-      ...diagnostico,
+      urgencia:
+        diagnostico.urgencia === 'ALTA' ||
+        diagnostico.urgencia === 'MEDIA' ||
+        diagnostico.urgencia === 'BAJA'
+          ? diagnostico.urgencia
+          : 'MEDIA',
+      especialidad: diagnostico.especialidad,
+      recomendacion: diagnostico.recomendacion,
       creadoEn: new Date().toISOString(),
     });
+  };
 
   const etiqueta = 'text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1 block';
+
   return (
     <main ref={containerRef} className="max-w-6xl mx-auto px-6 py-10">
       <div className="gsap-card bg-white/80 dark:bg-slate-900/80 border border-emerald-200 dark:border-emerald-900/50 p-4 rounded-2xl shadow-lg mb-8 flex justify-between">
@@ -249,16 +298,25 @@ export const Triaje = () => {
         </div>
         <span className="h-3 w-3 mt-2 bg-emerald-500 rounded-full" />
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="gsap-card bg-white/90 dark:bg-slate-900/90 rounded-2xl shadow-xl border border-white dark:border-slate-800 p-6">
-          <h3 className="text-xl font-bold mb-1">
-            {idEdicion ? 'Reevaluar triaje' : 'Nueva evaluación'}
-          </h3>
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-xl font-bold">
+              {idEdicion ? 'Reevaluar triaje' : 'Nueva evaluación'}
+            </h3>
+            {idEdicion && (
+              <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2.5 py-1 rounded-full font-semibold">
+                Modo Edición
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500 mb-6">
             {idEdicion
-              ? 'Modifique los datos permitidos. El nombre y el diagnóstico se obtendrán nuevamente.'
-              : 'Complete la información clínica del paciente.'}
+              ? 'Modifique los parámetros clínicos del paciente. La urgencia y especialidad se reevaluarán.'
+              : 'Complete la información clínica para derivación y registro.'}
           </p>
+
           <form onSubmit={evaluar} className="space-y-4">
             <div>
               <label htmlFor="dni" className={etiqueta}>
@@ -281,23 +339,22 @@ export const Triaje = () => {
                   type="button"
                   onClick={consultarDni}
                   disabled={consultandoDni || dni.length !== 8}
-                  className="px-4 rounded-xl font-semibold transition-colors duration-300 bg-teal-600 hover:bg-teal-700 text-white disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-800/80 dark:disabled:text-slate-500 disabled:cursor-not-allowed border border-transparent dark:disabled:border-slate-700"
+                  className="px-4 rounded-xl font-semibold transition-colors duration-300 bg-teal-600 hover:bg-teal-700 text-white disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-800/80 dark:disabled:text-slate-500 disabled:cursor-not-allowed border border-transparent dark:disabled:border-slate-700 cursor-pointer"
                 >
                   {consultandoDni ? 'Consultando...' : 'Aceptar'}
                 </button>
               </div>
+
               {nombreCompleto && (
                 <div className="mt-3 p-3 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900">
                   <p className="text-xs font-semibold text-teal-700 dark:text-teal-300">
-                    Paciente encontrado
+                    Paciente identificado
                   </p>
                   <p className="font-bold mt-1">{nombreCompleto}</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Fuente pública externa; verifique los datos.
-                  </p>
                 </div>
               )}
             </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className={etiqueta}>Edad</label>
@@ -337,6 +394,7 @@ export const Triaje = () => {
                 />
               </div>
             </div>
+
             <div>
               <label htmlFor="sintomas" className={etiqueta}>
                 Síntomas del paciente
@@ -353,16 +411,16 @@ export const Triaje = () => {
                 <button
                   type="button"
                   onClick={iniciarDictado}
-                  className={`absolute bottom-3 right-3 p-2 rounded-full transition-all duration-300 flex items-center justify-center ${
+                  className={`absolute bottom-3 right-3 p-2 rounded-full transition-all duration-300 flex items-center justify-center cursor-pointer ${
                     escuchando
                       ? 'bg-red-500 animate-pulse shadow-lg shadow-red-500/50'
-                      : 'bg-teal-100 hover:bg-teal-6D00 dark:bg-teal-900/50'
+                      : 'bg-teal-100 hover:bg-teal-200 dark:bg-teal-900/50'
                   }`}
                   title={escuchando ? 'Detener dictado' : 'Dictar por voz'}
                 >
                   <img
                     src={voiceIcon}
-                    alt="Ondas de voz"
+                    alt="Dictado por voz"
                     className={`w-5 h-5 object-contain transition-all duration-300 ${
                       escuchando ? 'brightness-0 invert' : 'opacity-70 dark:invert dark:opacity-80'
                     }`}
@@ -370,15 +428,17 @@ export const Triaje = () => {
                 </button>
               </div>
             </div>
+
             <button
               type="submit"
               disabled={cargando}
-              className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 disabled:opacity-60 text-white font-semibold shadow-lg transition-all"
+              className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 disabled:opacity-60 text-white font-semibold shadow-lg transition-all cursor-pointer"
             >
-              {cargando ? 'Analizando...' : 'Evaluar síntomas'}
+              {cargando ? 'Analizando con IA...' : 'Evaluar síntomas'}
             </button>
           </form>
         </section>
+
         <div className="space-y-6">
           {diagnostico ? (
             <section
@@ -389,51 +449,74 @@ export const Triaje = () => {
                 Resultado del triaje
               </h3>
               <div className="space-y-4 text-sm">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-slate-500">Nivel de urgencia</span>
                   <span
-                    className={`font-bold px-2.5 py-1 rounded-lg ${diagnostico.urgencia === 'ALTA' ? 'bg-red-100 text-red-700' : diagnostico.urgencia === 'MEDIA' ? 'bg-yellow-100 text-yellow-700' : diagnostico.urgencia === 'BAJA' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-white'}`}
+                    className={`font-bold px-2.5 py-1 rounded-lg ${
+                      diagnostico.urgencia === 'ALTA'
+                        ? 'bg-red-100 text-red-700'
+                        : diagnostico.urgencia === 'MEDIA'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : diagnostico.urgencia === 'BAJA'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-white'
+                    }`}
                   >
                     {diagnostico.urgencia}
                   </span>
                 </div>
+
                 <div>
                   <span className="text-slate-500">Especialidad sugerida</span>
                   <p className="font-semibold mt-1">{diagnostico.especialidad}</p>
                 </div>
+
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
-                  <span className="text-slate-500">Recomendación</span>
+                  <span className="text-slate-500">Recomendación diagnóstica</span>
                   <p className="mt-1">{diagnostico.recomendacion}</p>
                 </div>
+
                 {diagnostico.urgencia === 'NULA' ? (
                   <p className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
                     Evaluación informativa. No se guardó en el historial.
                   </p>
                 ) : (
                   <p
-                    className={`p-3 rounded-xl font-semibold ${guardado ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-amber-50 text-amber-700'}`}
+                    className={`p-3 rounded-xl font-semibold ${
+                      guardado
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                        : 'bg-amber-50 text-amber-700'
+                    }`}
                   >
                     {guardando
-                      ? 'Guardando automáticamente...'
+                      ? 'Sincronizando con PostgreSQL...'
                       : guardado
-                        ? 'Triaje guardado automáticamente'
+                        ? 'Triaje registrado correctamente en base de datos'
                         : 'No se pudo guardar automáticamente'}
                   </p>
                 )}
-                <div className="grid sm:grid-cols-2 gap-3">
+
+                <div className="grid sm:grid-cols-3 gap-3 pt-2">
                   <button
                     type="button"
                     onClick={descargar}
-                    className="py-3 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 font-semibold"
+                    className="py-2.5 px-3 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 font-semibold text-center text-xs sm:text-sm cursor-pointer transition-colors"
                   >
-                    Descargar reporte
+                    Descargar informe
                   </button>
                   <button
                     type="button"
                     onClick={nuevoTriaje}
-                    className="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold"
+                    className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-semibold text-center text-xs sm:text-sm cursor-pointer transition-colors"
                   >
                     Nuevo triaje
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard')}
+                    className="py-2.5 px-3 rounded-xl bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 font-semibold text-center text-xs sm:text-sm cursor-pointer transition-colors"
+                  >
+                    Ir al panel
                   </button>
                 </div>
               </div>
