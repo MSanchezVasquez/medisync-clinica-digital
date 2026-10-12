@@ -95,23 +95,29 @@ export const Dashboard = () => {
     return () => window.clearTimeout(tareaInicial);
   }, [cargar]);
 
-  const eliminar = async (t: Triaje) => {
-    const identificador = t.nombreCompleto || t.telefono || 'este registro';
-    if (!window.confirm(`¿Eliminar el triaje de ${identificador}?`)) return;
+  const eliminarTriaje = async (id: string) => {
+    if (!confirm('¿Está seguro de eliminar este registro de triaje?')) return;
 
-    const token = localStorage.getItem('medisync_token');
     try {
-      const r = await fetch(`${API}/triajes/${t.id}`, {
+      const token = localStorage.getItem('medisync_token');
+      const res = await fetch(`${API}/triajes/${id}`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
-      if (!r.ok) throw new Error();
-      await cargar();
-      toast.success('Triaje eliminado.');
-    } catch {
-      toast.error('No se pudo eliminar el triaje.');
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || 'No se pudo eliminar el triaje.');
+      }
+
+      toast.success('Triaje eliminado correctamente.');
+      // Recargar la lista con la función existente
+      cargar();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al eliminar');
     }
   };
 
@@ -247,7 +253,7 @@ export const Dashboard = () => {
                         Editar
                       </button>
                       <button
-                        onClick={() => void eliminar(t)}
+                        onClick={() => void eliminarTriaje(t.id)}
                         className="px-3 py-2 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 text-sm font-semibold cursor-pointer"
                       >
                         Eliminar

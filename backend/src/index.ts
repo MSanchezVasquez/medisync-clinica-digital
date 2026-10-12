@@ -515,22 +515,34 @@ app.put("/api/triajes/:id", verificarToken, async (req: Request, res: Response):
   }
 });
 
+// DELETE /api/triajes/:id - Eliminar triaje clínico
 app.delete(
-  '/api/triajes/:id',
+  "/api/triajes/:id",
+  verificarToken,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const triajes = await leerTriajes();
-      const restantes = triajes.filter((t) => t.id !== req.params.id);
-      if (restantes.length === triajes.length) {
-        res.status(404).json({ error: 'Triaje no encontrado.' });
+      const id = String(req.params.id);
+
+      const triaje = await prisma.triaje.findUnique({
+        where: { id },
+      });
+
+      if (!triaje) {
+        res.status(404).json({ error: "El triaje no existe o ya fue eliminado." });
         return;
       }
-      await guardarTriajes(restantes);
-      res.status(204).send();
-    } catch {
-      res.status(500).json({ error: 'No se pudo eliminar el triaje.' });
+
+      // Eliminar el registro en PostgreSQL
+      await prisma.triaje.delete({
+        where: { id },
+      });
+
+      res.json({ mensaje: "Triaje clínico eliminado correctamente." });
+    } catch (error) {
+      console.error("Error al eliminar triaje:", error);
+      res.status(500).json({ error: "Error interno al eliminar el triaje." });
     }
-  },
+  }
 );
 
 app.post('/api/triaje', async (req: Request, res: Response): Promise<void> => {
