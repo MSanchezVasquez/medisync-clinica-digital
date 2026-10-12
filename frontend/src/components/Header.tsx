@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from './ThemeToggle';
+import { ModalGestionUsuarios } from './ModalGestionUsuarios';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -12,7 +13,11 @@ interface UsuarioSesion {
   cmp?: string;
 }
 
-const ProfileDropdown = () => {
+interface ProfileDropdownProps {
+  onAbrirGestionUsuarios: () => void;
+}
+
+const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -94,6 +99,18 @@ const ProfileDropdown = () => {
               </div>
             </div>
 
+            {usuario?.rol === 'ADMIN' && (
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  onAbrirGestionUsuarios();
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-purple-600 dark:text-purple-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 cursor-pointer font-semibold"
+              >
+                👥 Gestión de Personal
+              </button>
+            )}
+
             <div className="py-1">
               <button
                 type="button"
@@ -126,6 +143,8 @@ const ProfileDropdown = () => {
 };
 
 export const Header = () => {
+  const [modalUsuariosAbierto, setModalUsuariosAbierto] = useState(false);
+
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -156,10 +175,15 @@ export const Header = () => {
             <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden md:block"></div>
 
             <ThemeToggle />
-            <ProfileDropdown />
+            <ProfileDropdown onAbrirGestionUsuarios={() => setModalUsuariosAbierto(true)} />
           </div>
         </div>
       </div>
+
+      <ModalGestionUsuarios
+        abierto={modalUsuariosAbierto}
+        alCerrar={() => setModalUsuariosAbierto(false)}
+      />
     </header>
   );
 };

@@ -705,6 +705,82 @@ app.post(
   }
 );
 
+// GET /api/usuarios - Listar todo el personal asistencial y administrativo (Solo ADMIN)
+app.get(
+  "/api/usuarios",
+  verificarToken,
+  requerirRol(["ADMIN"]),
+  async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const usuarios = await prisma.user.findMany({
+        select: {
+          id: true,
+          email: true,
+          nombre: true,
+          cmp: true,
+          rol: true,
+          activo: true,
+          creadoEn: true,
+          _count: {
+            select: { triajes: true },
+          },
+        },
+        orderBy: { creadoEn: "desc" },
+      });
+
+      res.json(usuarios);
+    } catch (error) {
+      console.error("Error al obtener usuarios:", error);
+      res.status(500).json({ error: "Error interno al listar los usuarios." });
+    }
+  }
+);
+
+// PATCH /api/usuarios/:id/estado - Activar o suspender acceso de un usuario (Solo ADMIN)
+app.patch(
+  "/api/usuarios/:id/estado",
+  verificarToken,
+  requerirRol(["ADMIN"]),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const usuarioSolicitante = (req as any).usuario;
+
+      // Evitar que el admin se desactive a sí mismo por accidente
+      if (usuarioSolicitante.id === id) {
+        res.status(400).json({ error: "No puede desactivar su propia cuenta de administrador." });
+        return;
+      }
+
+      const usuarioExistente = await prisma.user.findUnique({ where: { id } });
+      if (!usuarioExistente) {
+        res.status(404).json({ error: "El usuario especificado no existe." });
+        return;
+      }
+
+      const usuarioActualizado = await prisma.user.update({
+        where: { id },
+        data: { activo: !usuarioExistente.activo },
+        select: {
+          id: true,
+          email: true,
+          nombre: true,
+          rol: true,
+          activo: true,
+        },
+      });
+
+      res.json({
+        mensaje: `Usuario ${usuarioActualizado.activo ? "activado" : "suspendido"} exitosamente.`,
+        usuario: usuarioActualizado,
+      });
+    } catch (error) {
+      console.error("Error al cambiar estado del usuario:", error);
+      res.status(500).json({ error: "Error interno al actualizar estado del usuario." });
+    }
+  }
+);
+
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(
     `Servidor Backend de MediSync corriendo en http://localhost:${PORT} y expuesto a la red local.`,
