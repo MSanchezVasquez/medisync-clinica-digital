@@ -27,6 +27,8 @@ const aiService = new AiService(apiKey);
 const dataDirectory = new URL('../data/', import.meta.url);
 const triajesFile = new URL('triajes.json', dataDirectory);
 
+let metricasIoTRecientes: any[] = [];
+
 type UrgenciaGuardable = 'ALTA' | 'MEDIA' | 'BAJA';
 type TriajeGuardado = {
   id: string;
@@ -792,6 +794,25 @@ app.patch(
     }
   }
 );
+
+app.post('/api/sensores', (req: Request, res: Response): void => {
+  const metrica = req.body;
+  metricasIoTRecientes.unshift({
+    ...metrica,
+    timestamp: new Date().toISOString(),
+  });
+  // Mantener solo los últimos 30 registros
+  if (metricasIoTRecientes.length > 30) metricasIoTRecientes.pop();
+
+  res
+    .status(201)
+    .json({ mensaje: 'Telemetría IoT registrada exitosamente', metrica });
+});
+
+// GET para que el Dashboard y Streamlit consuman el flujo en tiempo real
+app.get('/api/sensores/stream', (_req: Request, res: Response): void => {
+  res.json(metricasIoTRecientes);
+});
 
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(

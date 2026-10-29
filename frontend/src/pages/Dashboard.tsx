@@ -32,6 +32,16 @@ export const Dashboard = () => {
     'Comprobando'
   );
 
+  interface TelemetriaIoT {
+    dispositivoId: string;
+    paciente: string;
+    frecuenciaCardiaca: number;
+    temperatura: number;
+    spo2: number;
+    timestamp: string;
+  }
+  const [telemetriaIoT, setTelemetriaIoT] = useState<TelemetriaIoT[]>([]);
+
   const cargar = useCallback(async () => {
     const token = localStorage.getItem('medisync_token');
 
@@ -94,6 +104,24 @@ export const Dashboard = () => {
       .catch(() => setEstadoIA('No disponible'));
     return () => window.clearTimeout(tareaInicial);
   }, [cargar]);
+
+  useEffect(() => {
+    const fetchIoT = async () => {
+      try {
+        const res = await fetch(`${API}/sensores/stream`);
+        if (res.ok) {
+          const data = await res.json();
+          setTelemetriaIoT(data);
+        }
+      } catch (e) {
+        console.error('Error al sincronizar telemetría IoT', e);
+      }
+    };
+
+    fetchIoT();
+    const interval = setInterval(fetchIoT, 3000); // Actualizar cada 3 segundos
+    return () => clearInterval(interval);
+  }, []);
 
   const eliminarTriaje = async (id: string) => {
     if (!confirm('¿Está seguro de eliminar este registro de triaje?')) return;
@@ -163,6 +191,56 @@ export const Dashboard = () => {
           </p>
         </div>
       </div>
+
+      {/* Sección de Monitoreo IoT en Tiempo Real */}
+      <section className="mt-8 bg-white/95 dark:bg-slate-900/95 rounded-2xl border border-white dark:border-slate-800 shadow-xl p-6">
+        <div className="flex items-center justify-between mb-4 border-b dark:border-slate-800 pb-3">
+          <div className="flex items-center gap-3">
+            <span className="w-3.5 h-3.5 bg-emerald-500 rounded-full animate-pulse" />
+            <h3 className="text-xl font-bold">Monitoreo IoT en Tiempo Real (Camas UCI)</h3>
+          </div>
+          <span className="text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 px-3 py-1 rounded-full font-semibold">
+            Dispositivo Activo
+          </span>
+        </div>
+
+        {telemetriaIoT.length === 0 ? (
+          <div className="text-center py-8 text-slate-500">
+            <p className="font-semibold">Esperando telemetría del dispositivo simulado...</p>
+            <p className="text-xs mt-1">Ejecute el script del emulador IoT en su terminal.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <p className="text-xs text-slate-400 font-semibold uppercase">Pulso Cardíaco</p>
+                <p className="text-3xl font-bold text-teal-600 mt-1">
+                  {telemetriaIoT[0].frecuenciaCardiaca}{' '}
+                  <span className="text-sm font-normal text-slate-500">bpm</span>
+                </p>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <p className="text-xs text-slate-400 font-semibold uppercase">
+                  Temperatura Corporal
+                </p>
+                <p className="text-3xl font-bold text-amber-600 mt-1">
+                  {telemetriaIoT[0].temperatura}{' '}
+                  <span className="text-sm font-normal text-slate-500">°C</span>
+                </p>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <p className="text-xs text-slate-400 font-semibold uppercase">
+                  Saturación de Oxígeno (SpO2)
+                </p>
+                <p className="text-3xl font-bold text-blue-600 mt-1">
+                  {telemetriaIoT[0].spo2}{' '}
+                  <span className="text-sm font-normal text-slate-500">%</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
 
       <section className="bg-white/90 dark:bg-slate-900/90 rounded-2xl border border-white dark:border-slate-800 shadow-xl overflow-hidden">
         <header className="p-6 border-b border-slate-200 dark:border-slate-800">
