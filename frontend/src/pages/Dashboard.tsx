@@ -19,6 +19,15 @@ type Triaje = {
   fecha?: string;
 };
 
+interface TelemetriaIoT {
+  dispositivoId: string;
+  paciente: string;
+  frecuenciaCardiaca: number;
+  temperatura: number;
+  spo2: number;
+  timestamp: string;
+}
+
 const API = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
   : 'http://localhost:3000/api';
@@ -31,15 +40,6 @@ export const Dashboard = () => {
   const [estadoIA, setEstadoIA] = useState<'Comprobando' | 'Activo' | 'No disponible'>(
     'Comprobando'
   );
-
-  interface TelemetriaIoT {
-    dispositivoId: string;
-    paciente: string;
-    frecuenciaCardiaca: number;
-    temperatura: number;
-    spo2: number;
-    timestamp: string;
-  }
   const [telemetriaIoT, setTelemetriaIoT] = useState<TelemetriaIoT[]>([]);
 
   const cargar = useCallback(async () => {
@@ -71,13 +71,12 @@ export const Dashboard = () => {
       const triajesData: Triaje[] = await rh.json();
       setHistorial(triajesData);
 
-      // 2. Cargar métricas (o calcularlas en base a los triajes si /dashboard no existe aún)
+      // 2. Cargar métricas
       try {
         const rm = await fetch(`${API}/dashboard`, { headers: authHeaders });
         if (rm.ok) {
           setMetricas(await rm.json());
         } else {
-          // Cálculo reactivo si el endpoint aún no está implementado
           setMetricas({
             pacientesHoy: triajesData.length,
             urgenciasAltas: triajesData.filter((t) => t.urgencia === 'ALTA').length,
@@ -119,7 +118,7 @@ export const Dashboard = () => {
     };
 
     fetchIoT();
-    const interval = setInterval(fetchIoT, 3000); // Actualizar cada 3 segundos
+    const interval = setInterval(fetchIoT, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -142,7 +141,6 @@ export const Dashboard = () => {
       }
 
       toast.success('Triaje eliminado correctamente.');
-      // Recargar la lista con la función existente
       cargar();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Error al eliminar');
@@ -153,8 +151,9 @@ export const Dashboard = () => {
     'bg-white/90 dark:bg-slate-900/90 backdrop-blur p-6 rounded-2xl border border-white dark:border-slate-800 shadow-xl shadow-slate-900/5';
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <main className="max-w-6xl mx-auto px-6 py-10 space-y-8">
+      {/* Encabezado Principal */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Panel de control</h2>
           <p className="text-sm text-slate-500 mt-1">Resumen operativo e historial de pacientes.</p>
@@ -167,7 +166,8 @@ export const Dashboard = () => {
         </button>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
+      {/* Tarjetas de Métricas Globales */}
+      <div className="grid md:grid-cols-3 gap-6">
         <div className={tarjeta}>
           <p className="text-sm text-slate-500">Pacientes hoy</p>
           <p className="text-3xl font-bold mt-2">{metricas.pacientesHoy}</p>
@@ -192,9 +192,9 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Sección de Monitoreo IoT en Tiempo Real */}
-      <section className="mt-8 bg-white/95 dark:bg-slate-900/95 rounded-2xl border border-white dark:border-slate-800 shadow-xl p-6">
-        <div className="flex items-center justify-between mb-4 border-b dark:border-slate-800 pb-3">
+      {/* BLOQUE INDEPENDIENTE 1: Monitoreo IoT en Tiempo Real (Camas UCI) */}
+      <section className="bg-white/90 dark:bg-slate-900/90 rounded-2xl border border-white dark:border-slate-800 shadow-xl overflow-hidden p-6">
+        <div className="flex items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-3">
             <span className="w-3.5 h-3.5 bg-emerald-500 rounded-full animate-pulse" />
             <h3 className="text-xl font-bold">Monitoreo IoT en Tiempo Real (Camas UCI)</h3>
@@ -211,6 +211,16 @@ export const Dashboard = () => {
           </div>
         ) : (
           <div className="space-y-4">
+            <div className="flex items-center justify-between text-sm text-slate-400 px-1">
+              <span>
+                Nodo / Ubicación:{' '}
+                <strong className="text-slate-200">{telemetriaIoT[0].paciente}</strong>
+              </span>
+              <span>
+                ID Dispositivo:{' '}
+                <strong className="text-slate-200">{telemetriaIoT[0].dispositivoId}</strong>
+              </span>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                 <p className="text-xs text-slate-400 font-semibold uppercase">Pulso Cardíaco</p>
@@ -242,6 +252,7 @@ export const Dashboard = () => {
         )}
       </section>
 
+      {/* BLOQUE INDEPENDIENTE 2: Historial de Triajes */}
       <section className="bg-white/90 dark:bg-slate-900/90 rounded-2xl border border-white dark:border-slate-800 shadow-xl overflow-hidden">
         <header className="p-6 border-b border-slate-200 dark:border-slate-800">
           <h3 className="text-xl font-bold">Historial de triajes</h3>
