@@ -60,13 +60,14 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
 
   return (
     <div className="relative" ref={dropdownRef}>
+      {/* Botón de perfil sin sombras ni efectos exagerados al hacer click */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+        className="flex items-center gap-2 p-0.5 rounded-full focus:outline-none cursor-pointer"
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-teal-500/20">
+        <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-sm">
           {iniciales}
         </div>
       </button>
@@ -78,7 +79,7 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 mt-3 w-64 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50"
+            className="absolute right-0 mt-3 w-68 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50"
           >
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
               <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
@@ -105,9 +106,31 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
                   setIsOpen(false);
                   onAbrirGestionUsuarios();
                 }}
-                className="w-full text-left px-4 py-2.5 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 flex items-center gap-2 cursor-pointer font-semibold transition-colors border-b border-slate-100 dark:border-slate-800"
+                className="w-full text-left px-4 py-2.5 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 flex items-center gap-2.5 cursor-pointer font-semibold transition-colors border-b border-slate-100 dark:border-slate-800"
               >
-                <span>👥</span> Gestión de Personal
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1.2em"
+                  height="1.2em"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M0 0h24v24H0z" fill="none" />
+                  <g
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.5"
+                  >
+                    <circle cx="5.25" cy="6.25" r="2.25" />
+                    <path d="M3.5 14H7a.75.75 0 0 0 .75-.75c0-1.9-1.1-3-2.5-3s-2.5 1.1-2.5 3a.75.75 0 0 0 .75.75" />
+                    <circle cx="18.75" cy="6.25" r="2.25" />
+                    <path d="M17 14h3.5a.75.75 0 0 0 .75-.75c0-1.9-1.1-3-2.5-3s-2.5 1.1-2.5 3A.75.75 0 0 0 17 14" />
+                    <circle cx="12" cy="11.5" r="2" />
+                    <path d="M6.75 21.25h10.5a.75.75 0 0 0 .75-.75c0-2.9-2.6-4.75-6-4.75S6 17.6 6 20.5a.75.75 0 0 0 .75.75" />
+                  </g>
+                </svg>
+                Gestión Personal
               </button>
             )}
 
@@ -118,9 +141,24 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
                   setIsOpen(false);
                   toast.info('Vista de perfil institucional en desarrollo.');
                 }}
-                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 cursor-pointer font-medium"
+                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2.5 cursor-pointer font-medium"
               >
-                <span>👤</span> Mi Perfil
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1.2em"
+                  height="1.2em"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M0 0h24v24H0z" fill="none" />
+                  <g fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path
+                      strokeLinejoin="round"
+                      d="M4 18a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"
+                    />
+                    <circle cx="12" cy="7" r="3" />
+                  </g>
+                </svg>
+                Mi Perfil
               </button>
             </div>
 
@@ -128,9 +166,27 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center gap-2 cursor-pointer"
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center gap-2.5 cursor-pointer"
               >
-                <span>🚪</span> Cerrar Sesión
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="1.2em"
+                  height="1.2em"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M0 0h24v24H0z" fill="none" />
+                  <path
+                    fill="currentColor"
+                    d="M12 18.25a.75.75 0 0 0 0 1.5h6A1.75 1.75 0 0 0 19.75 18V6A1.75 1.75 0 0 0 18 4.25h-6a.75.75 0 0 0 0 1.5h6a.25.25 0 0 1 .25.25v12a.25.25 0 0 1-.25.25z"
+                  />
+                  <path
+                    fill="currentColor"
+                    fillRule="evenodd"
+                    d="M14.503 14.365c.69 0 1.25-.56 1.25-1.25v-2.24c0-.69-.56-1.25-1.25-1.25H9.89l-.02-.22l-.054-.556a1.227 1.227 0 0 0-1.751-.988a15 15 0 0 0-4.368 3.164l-.099.103a1.253 1.253 0 0 0 0 1.734l.1.103a15 15 0 0 0 4.367 3.164a1.227 1.227 0 0 0 1.751-.988l.054-.556l.02-.22zm-5.308-1.5a.75.75 0 0 0-.748.704q-.028.435-.07.871l-.016.162a13.6 13.6 0 0 1-3.516-2.607a13.6 13.6 0 0 1 3.516-2.607l.016.162q.042.435.07.871a.75.75 0 0 0 .748.704h5.058v1.74z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Cerrar Sesión
               </button>
             </div>
           </motion.div>
@@ -229,7 +285,7 @@ export const Header = () => {
             <div className="h-7 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
 
             <div className="flex items-center gap-3">
-              {/* Botón de Notificaciones con el nuevo icono SVG */}
+              {/* Botón de Notificaciones */}
               <button
                 type="button"
                 onClick={() => toast.info('No hay alertas críticas pendientes.')}
