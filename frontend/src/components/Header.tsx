@@ -78,9 +78,10 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 mt-3 w-68 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50"
+            className="absolute right-0 mt-3 w-68 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 p-1.5"
           >
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+            {/* Cabecera del usuario */}
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800/80 mb-1 bg-slate-50/50 dark:bg-slate-800/30 rounded-lg">
               <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
                 {usuario?.nombre || 'Personal Médico'}
               </p>
@@ -99,14 +100,15 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
               </div>
             </div>
 
-            {usuario?.rol === 'ADMIN' && (
-              <div className="py-1 border-b border-slate-100 dark:border-slate-800">
+            {/* Opciones del menú con hover de bloque completo */}
+            <div className="space-y-0.5">
+              {usuario?.rol === 'ADMIN' && (
                 <button
                   onClick={() => {
                     setIsOpen(false);
                     onAbrirGestionUsuarios();
                   }}
-                  className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2.5 cursor-pointer font-medium"
+                  className="w-full text-left px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 cursor-pointer font-medium rounded-lg"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -132,17 +134,15 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
                   </svg>
                   Gestión Personal
                 </button>
-              </div>
-            )}
+              )}
 
-            <div className="py-1">
               <button
                 type="button"
                 onClick={() => {
                   setIsOpen(false);
                   toast.info('Vista de perfil institucional en desarrollo.');
                 }}
-                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2.5 cursor-pointer font-medium"
+                className="w-full text-left px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 cursor-pointer font-medium rounded-lg"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -161,34 +161,34 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
                 </svg>
                 Mi Perfil
               </button>
-            </div>
 
-            <div className="border-t border-slate-100 dark:border-slate-800 py-1">
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2.5 cursor-pointer font-medium"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="1.2em"
-                  height="1.2em"
-                  viewBox="0 0 24 24"
+              <div className="pt-1 mt-1 border-t border-slate-100 dark:border-slate-800/80">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 cursor-pointer font-medium rounded-lg"
                 >
-                  <path d="M0 0h24v24H0z" fill="none" />
-                  <path
-                    fill="currentColor"
-                    d="M12 18.25a.75.75 0 0 0 0 1.5h6A1.75 1.75 0 0 0 19.75 18V6A1.75 1.75 0 0 0 18 4.25h-6a.75.75 0 0 0 0 1.5h6a.25.25 0 0 1 .25.25v12a.25.25 0 0 1-.25.25z"
-                  />
-                  <path
-                    fill="currentColor"
-                    fillRule="evenodd"
-                    d="M14.503 14.365c.69 0 1.25-.56 1.25-1.25v-2.24c0-.69-.56-1.25-1.25-1.25H9.89l-.02-.22l-.054-.556a1.227 1.227 0 0 0-1.751-.988a15 15 0 0 0-4.368 3.164l-.099.103a1.253 1.253 0 0 0 0 1.734l.1.103a15 15 0 0 0 4.367 3.164a1.227 1.227 0 0 0 1.751-.988l.054-.556l.02-.22zm-5.308-1.5a.75.75 0 0 0-.748.704q-.028.435-.07.871l-.016.162a13.6 13.6 0 0 1-3.516-2.607a13.6 13.6 0 0 1 3.516-2.607l.016.162q.042.435.07.871a.75.75 0 0 0 .748.704h5.058v1.74z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Cerrar Sesión
-              </button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="1.2em"
+                    height="1.2em"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M0 0h24v24H0z" fill="none" />
+                    <path
+                      fill="currentColor"
+                      d="M12 18.25a.75.75 0 0 0 0 1.5h6A1.75 1.75 0 0 0 19.75 18V6A1.75 1.75 0 0 0 18 4.25h-6a.75.75 0 0 0 0 1.5h6a.25.25 0 0 1 .25.25v12a.25.25 0 0 1-.25.25z"
+                    />
+                    <path
+                      fill="currentColor"
+                      fillRule="evenodd"
+                      d="M14.503 14.365c.69 0 1.25-.56 1.25-1.25v-2.24c0-.69-.56-1.25-1.25-1.25H9.89l-.02-.22l-.054-.556a1.227 1.227 0 0 0-1.751-.988a15 15 0 0 0-4.368 3.164l-.099.103a1.253 1.253 0 0 0 0 1.734l.1.103a15 15 0 0 0 4.367 3.164a1.227 1.227 0 0 0 1.751-.988l.054-.556l.02-.22zm-5.308-1.5a.75.75 0 0 0-.748.704q-.028.435-.07.871l-.016.162a13.6 13.6 0 0 1-3.516-2.607a13.6 13.6 0 0 1 3.516-2.607l.016.162q.042.435.07.871a.75.75 0 0 0 .748.704h5.058v1.74z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Cerrar Sesión
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -226,7 +226,6 @@ export const Header = () => {
           {/* Navegación Principal y Acciones */}
           <div className="flex items-center gap-5">
             <nav className="flex items-center gap-2">
-              {/* Botón Inicio */}
               <Link
                 to="/dashboard"
                 className={`text-sm font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
@@ -254,7 +253,6 @@ export const Header = () => {
                 Inicio
               </Link>
 
-              {/* Botón Triaje */}
               <Link
                 to="/triaje"
                 className={`text-sm font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
@@ -286,7 +284,6 @@ export const Header = () => {
             <div className="h-7 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
 
             <div className="flex items-center gap-3">
-              {/* Botón de Notificaciones */}
               <button
                 type="button"
                 onClick={() => toast.info('No hay alertas críticas pendientes.')}
