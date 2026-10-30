@@ -60,7 +60,6 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Botón de perfil sin sombras ni efectos exagerados al hacer click */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 p-0.5 rounded-full focus:outline-none cursor-pointer"
@@ -101,37 +100,39 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
             </div>
 
             {usuario?.rol === 'ADMIN' && (
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  onAbrirGestionUsuarios();
-                }}
-                className="w-full text-left px-4 py-2.5 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 flex items-center gap-2.5 cursor-pointer font-semibold transition-colors border-b border-slate-100 dark:border-slate-800"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="1.2em"
-                  height="1.2em"
-                  viewBox="0 0 24 24"
+              <div className="py-1 border-b border-slate-100 dark:border-slate-800">
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    onAbrirGestionUsuarios();
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2.5 cursor-pointer font-medium"
                 >
-                  <path d="M0 0h24v24H0z" fill="none" />
-                  <g
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.5"
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="1.2em"
+                    height="1.2em"
+                    viewBox="0 0 24 24"
                   >
-                    <circle cx="5.25" cy="6.25" r="2.25" />
-                    <path d="M3.5 14H7a.75.75 0 0 0 .75-.75c0-1.9-1.1-3-2.5-3s-2.5 1.1-2.5 3a.75.75 0 0 0 .75.75" />
-                    <circle cx="18.75" cy="6.25" r="2.25" />
-                    <path d="M17 14h3.5a.75.75 0 0 0 .75-.75c0-1.9-1.1-3-2.5-3s-2.5 1.1-2.5 3A.75.75 0 0 0 17 14" />
-                    <circle cx="12" cy="11.5" r="2" />
-                    <path d="M6.75 21.25h10.5a.75.75 0 0 0 .75-.75c0-2.9-2.6-4.75-6-4.75S6 17.6 6 20.5a.75.75 0 0 0 .75.75" />
-                  </g>
-                </svg>
-                Gestión Personal
-              </button>
+                    <path d="M0 0h24v24H0z" fill="none" />
+                    <g
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.5"
+                    >
+                      <circle cx="5.25" cy="6.25" r="2.25" />
+                      <path d="M3.5 14H7a.75.75 0 0 0 .75-.75c0-1.9-1.1-3-2.5-3s-2.5 1.1-2.5 3a.75.75 0 0 0 .75.75" />
+                      <circle cx="18.75" cy="6.25" r="2.25" />
+                      <path d="M17 14h3.5a.75.75 0 0 0 .75-.75c0-1.9-1.1-3-2.5-3s-2.5 1.1-2.5 3A.75.75 0 0 0 17 14" />
+                      <circle cx="12" cy="11.5" r="2" />
+                      <path d="M6.75 21.25h10.5a.75.75 0 0 0 .75-.75c0-2.9-2.6-4.75-6-4.75S6 17.6 6 20.5a.75.75 0 0 0 .75.75" />
+                    </g>
+                  </svg>
+                  Gestión Personal
+                </button>
+              </div>
             )}
 
             <div className="py-1">
@@ -141,7 +142,7 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
                   setIsOpen(false);
                   toast.info('Vista de perfil institucional en desarrollo.');
                 }}
-                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2.5 cursor-pointer font-medium"
+                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2.5 cursor-pointer font-medium"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -166,7 +167,7 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center gap-2.5 cursor-pointer"
+                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2.5 cursor-pointer font-medium"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
