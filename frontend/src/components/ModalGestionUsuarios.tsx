@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 
 interface Usuario {
@@ -59,7 +60,6 @@ export const ModalGestionUsuarios = ({ abierto, alCerrar }: Props) => {
     if (!abierto) return;
     let montado = true;
 
-    // Diferir la carga asíncrona para evitar cascading renders síncronos en el montaje
     const cargarInicial = async () => {
       setCargando(true);
       try {
@@ -134,9 +134,10 @@ export const ModalGestionUsuarios = ({ abierto, alCerrar }: Props) => {
   const inputClass =
     'w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500';
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
+  // Usamos createPortal para renderizar el modal directamente en el body del documento
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl my-auto">
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 mb-6">
           <div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white">
@@ -319,6 +320,7 @@ export const ModalGestionUsuarios = ({ abierto, alCerrar }: Props) => {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
