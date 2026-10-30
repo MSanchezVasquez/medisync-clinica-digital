@@ -34,6 +34,18 @@ export const ModalGestionUsuarios = ({ abierto, alCerrar }: Props) => {
   const [cmp, setCmp] = useState('');
   const [rol, setRol] = useState<'MEDICO' | 'ADMIN'>('MEDICO');
 
+  // Bloquear el scroll del body cuando el modal está abierto
+  useEffect(() => {
+    if (abierto) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [abierto]);
+
   const getHeaders = () => {
     const token = localStorage.getItem('medisync_token');
     return {
@@ -134,10 +146,19 @@ export const ModalGestionUsuarios = ({ abierto, alCerrar }: Props) => {
   const inputClass =
     'w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500';
 
-  // Usamos createPortal para renderizar el modal directamente en el body del documento
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl my-auto">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          alCerrar();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-xs overflow-y-auto cursor-pointer"
+    >
+      <div
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl my-auto cursor-default"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 mb-6">
           <div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white">
