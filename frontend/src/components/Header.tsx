@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from './ThemeToggle';
 import { ModalGestionUsuarios } from './ModalGestionUsuarios';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface UsuarioSesion {
@@ -66,7 +66,7 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        <div className="w-9 h-9 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+        <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-teal-500/20">
           {iniciales}
         </div>
       </button>
@@ -87,12 +87,12 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                 {usuario?.email || 'Sin correo asignado'}
               </p>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-1.5 flex items-center gap-2">
                 <span className="text-[10px] font-semibold bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300 px-2 py-0.5 rounded-full">
                   {usuario?.rol || 'MEDICO'}
                 </span>
                 {usuario?.cmp && (
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
                     CMP: {usuario.cmp}
                   </span>
                 )}
@@ -105,24 +105,22 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
                   setIsOpen(false);
                   onAbrirGestionUsuarios();
                 }}
-                className="w-full text-left px-4 py-2 text-sm text-purple-600 dark:text-purple-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 cursor-pointer font-semibold"
+                className="w-full text-left px-4 py-2.5 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30 flex items-center gap-2 cursor-pointer font-semibold transition-colors border-b border-slate-100 dark:border-slate-800"
               >
-                👥 Gestión de Personal
+                <span>👥</span> Gestión de Personal
               </button>
             )}
 
             <div className="py-1">
               <button
                 type="button"
-                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 cursor-pointer"
+                onClick={() => {
+                  setIsOpen(false);
+                  toast.info('Vista de perfil institucional en desarrollo.');
+                }}
+                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 cursor-pointer font-medium"
               >
                 <span>👤</span> Mi Perfil
-              </button>
-              <button
-                type="button"
-                className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 cursor-pointer"
-              >
-                <span>⚙️</span> Configuración
               </button>
             </div>
 
@@ -144,38 +142,73 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
 
 export const Header = () => {
   const [modalUsuariosAbierto, setModalUsuariosAbierto] = useState(false);
+  const location = useLocation();
+
+  const esRutaActiva = (path: string) => location.pathname === path;
 
   return (
-    <header className="sticky top-0 z-40 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+    <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">+</span>
+        {/* Altura incrementada de h-16 a h-20 (80px) para un header más amplio */}
+        <div className="flex justify-between items-center h-20">
+          {/* Brand / Logo */}
+          <Link to="/dashboard" className="flex items-center gap-3 group cursor-pointer">
+            <div className="w-10 h-10 bg-teal-600 group-hover:bg-teal-500 rounded-xl flex items-center justify-center shadow-md transition-colors">
+              <span className="text-white font-bold text-2xl leading-none">+</span>
             </div>
-            <h1 className="text-xl font-bold text-slate-800 dark:text-white">MediSync Perú</h1>
-          </div>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                MediSync{' '}
+                <span className="text-teal-600 dark:text-teal-400 font-semibold text-lg">Perú</span>
+              </h1>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium -mt-1 hidden sm:block">
+                Sistema de Triaje & Telemetría UCI
+              </p>
+            </div>
+          </Link>
 
-          <div className="flex items-center gap-4">
-            <nav className="hidden md:flex gap-4 mr-2">
+          {/* Navegación Principal y Acciones */}
+          <div className="flex items-center gap-5">
+            <nav className="flex items-center gap-2">
               <Link
                 to="/dashboard"
-                className="text-sm font-medium text-slate-600 hover:text-teal-600 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
+                className={`text-sm font-semibold px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5 ${
+                  esRutaActiva('/dashboard')
+                    ? 'bg-slate-100 text-teal-700 dark:bg-slate-800 dark:text-teal-400 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900'
+                }`}
               >
-                Inicio
+                <span>🏠</span> Inicio
               </Link>
               <Link
                 to="/triaje"
-                className="text-sm font-medium bg-teal-600/10 text-teal-700 hover:bg-teal-600/20 dark:bg-teal-900/30 dark:text-teal-400 px-3 py-1 rounded-md transition-colors"
+                className={`text-sm font-semibold px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 ${
+                  esRutaActiva('/triaje')
+                    ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20'
+                    : 'bg-teal-600/10 text-teal-700 hover:bg-teal-600/20 dark:bg-teal-950/50 dark:text-teal-300 dark:hover:bg-teal-900/50'
+                }`}
               >
-                Triaje
+                <span>📋</span> Triaje
               </Link>
             </nav>
 
-            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden md:block"></div>
+            <div className="h-7 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
 
-            <ThemeToggle />
-            <ProfileDropdown onAbrirGestionUsuarios={() => setModalUsuariosAbierto(true)} />
+            <div className="flex items-center gap-3">
+              {/* Botón de Notificaciones Sanitaria (Adicional) */}
+              <button
+                type="button"
+                onClick={() => toast.info('No hay alertas críticas pendientes.')}
+                className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors relative cursor-pointer"
+                title="Alertas del sistema"
+              >
+                <span className="text-lg">🔔</span>
+                <span className="absolute top-1 right-1 w-2 h-2 bg-teal-500 rounded-full"></span>
+              </button>
+
+              <ThemeToggle />
+              <ProfileDropdown onAbrirGestionUsuarios={() => setModalUsuariosAbierto(true)} />
+            </div>
           </div>
         </div>
       </div>
