@@ -1,12 +1,6 @@
 import 'dotenv/config';
-import { PrismaClient, Role } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { prisma } from '../src/lib/prisma.js';
 import bcrypt from 'bcryptjs';
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('🌱 Ejecutando seed en PostgreSQL...');
@@ -24,15 +18,12 @@ async function main() {
       password,
       nombre: 'Administrador General',
       cmp: 'ADMIN-001',
-      rol: Role.ADMIN,
+      rol: "ADMIN",
       activo: true,
     },
   });
 
-  console.log(
-    `✅ Administrador creado/verificado: ${admin.email} (Rol: ${admin.rol})`,
-  );
-  console.log(`🔑 Contraseña asignada: ${passwordPlana}`);
+console.log(`✅ Usuario administrador creado/actualizado: ${admin.email}`);
 }
 
 main()
@@ -42,5 +33,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-    await pool.end();
   });
