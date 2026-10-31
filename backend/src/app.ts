@@ -9,10 +9,14 @@ import iaRoutes from './routes/ia.routes.js';
 import sensorRoutes from './routes/sensor.routes.js';
 import whatsappRoutes from './routes/whatsapp.routes.js';
 
+import { estadoIa } from './controllers/ia.controller.js';
+
 const app: Application = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.get('/api/estado-ia', estadoIa);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/triajes', triajeRoutes);
