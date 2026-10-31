@@ -1,8 +1,6 @@
 import { type Request, type Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { notificarAgenteNoCode } from '../services/nocode.service.js';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
 
 export const obtenerDashboard = async (
   _req: Request,

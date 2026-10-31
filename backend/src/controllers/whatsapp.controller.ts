@@ -1,8 +1,7 @@
 import { type Request, type Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AiService } from '../ai/aiService.js';
+import { prisma } from '../lib/prisma.js';
 
-const prisma = new PrismaClient();
 const apiKey = process.env.GEMINI_API_KEY?.trim() || '';
 const aiService = new AiService(apiKey);
 
