@@ -17,6 +17,146 @@ interface ProfileDropdownProps {
   onAbrirGestionUsuarios: () => void;
 }
 
+interface AlertaMedica {
+  id: string;
+  tipo: 'CRITICO' | 'ADVERTENCIA' | 'INFO';
+  titulo: string;
+  mensaje: string;
+  tiempo: string;
+  leida: boolean;
+}
+
+// Componente Desplegable de Notificaciones
+const NotificationDropdown = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [alertas, setAlertas] = useState<AlertaMedica[]>([
+    {
+      id: '1',
+      tipo: 'CRITICO',
+      titulo: 'Alerta IoT - Cama 4',
+      mensaje: 'Frecuencia cardíaca elevada detectada en tiempo real.',
+      tiempo: 'Hace 2 min',
+      leida: false,
+    },
+    {
+      id: '2',
+      tipo: 'ADVERTENCIA',
+      titulo: 'Nuevo Triaje Ingresado',
+      mensaje: 'Paciente registrado con síntomas de dolor agudo.',
+      tiempo: 'Hace 15 min',
+      leida: false,
+    },
+  ]);
+
+  const noLeidas = alertas.filter((a) => !a.leida).length;
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const marcarComoLeidas = () => {
+    setAlertas(alertas.map((a) => ({ ...a, leida: true })));
+    toast.success('Todas las alertas marcadas como leídas.');
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors relative cursor-pointer"
+        title="Alertas del sistema"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="1.3em" height="1.3em" viewBox="0 0 24 24">
+          <path d="M0 0h24v24H0z" fill="none" />
+          <g
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.5"
+          >
+            <path d="M3 12c0-4.243 0-6.364 1.318-7.682S7.758 3 12 3s6.364 0 7.682 1.318S21 7.758 21 12s0 6.364-1.318 7.682S16.242 21 12 21s-6.364 0-7.682-1.318S3 16.242 3 12" />
+            <path d="M7.375 8H7.25m.125 4H7.25m.125 4H7.25m.25-8A.25.25 0 1 1 7 8a.25.25 0 0 1 .5 0m0 4a.25.25 0 1 1-.5 0a.25.25 0 0 1 .5 0m0 4a.25.25 0 1 1-.5 0a.25.25 0 0 1 .5 0M11 8h6m-6 4h6m-6 4h6" />
+          </g>
+        </svg>
+        {noLeidas > 0 && (
+          <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-teal-500 rounded-full animate-pulse"></span>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50"
+          >
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                  Centro de Alertas
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Monitoreo de UCI y Triaje
+                </p>
+              </div>
+              {noLeidas > 0 && (
+                <button
+                  onClick={marcarComoLeidas}
+                  className="text-xs text-teal-600 dark:text-teal-400 hover:underline font-medium cursor-pointer"
+                >
+                  Marcar leídas
+                </button>
+              )}
+            </div>
+
+            <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+              {alertas.length === 0 ? (
+                <div className="p-6 text-center text-sm text-slate-400">
+                  No hay notificaciones nuevas
+                </div>
+              ) : (
+                alertas.map((alerta) => (
+                  <div
+                    key={alerta.id}
+                    className={`p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${!alerta.leida ? 'bg-teal-50/30 dark:bg-teal-950/10' : ''}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span
+                        className={`text-xs font-bold px-2 py-0.5 rounded-md ${
+                          alerta.tipo === 'CRITICO'
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                        }`}
+                      >
+                        {alerta.titulo}
+                      </span>
+                      <span className="text-[10px] text-slate-400">{alerta.tiempo}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1.5">
+                      {alerta.mensaje}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -80,7 +220,6 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
             transition={{ duration: 0.15, ease: 'easeOut' }}
             className="absolute right-0 mt-3 w-68 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 p-1.5"
           >
-            {/* Cabecera del usuario */}
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800/80 mb-1 bg-slate-50/50 dark:bg-slate-800/30 rounded-lg">
               <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
                 {usuario?.nombre || 'Personal Médico'}
@@ -100,7 +239,6 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
               </div>
             </div>
 
-            {/* Opciones del menú con hover de bloque completo */}
             <div className="space-y-0.5">
               {usuario?.rol === 'ADMIN' && (
                 <button
@@ -274,7 +412,7 @@ export const Header = () => {
                   />
                   <path
                     fill="currentColor"
-                    d="M26 4h-4V2h-2v2h-8V2h-2v2H6a2 2 0 0 0-2 2v20a2 2 0 0 0 2 2h4v-2H6V6h4v2h2V6h8v2h2V6h4v4h2V6a2 2 0 0 0-2-2"
+                    d="M26 4h-4V2h-2v2H6V2h-2v2H6a2 2 0 0 0-2 2v20a2 2 0 0 0 2 2h4v-2H6V6h4v2h2V6h8v2h2V6h4v4h2V6a2 2 0 0 0-2-2"
                   />
                 </svg>
                 Triaje
@@ -284,32 +422,8 @@ export const Header = () => {
             <div className="h-7 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
 
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => toast.info('No hay alertas críticas pendientes.')}
-                className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors relative cursor-pointer"
-                title="Alertas del sistema"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="1.3em"
-                  height="1.3em"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M0 0h24v24H0z" fill="none" />
-                  <g
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.5"
-                  >
-                    <path d="M3 12c0-4.243 0-6.364 1.318-7.682S7.758 3 12 3s6.364 0 7.682 1.318S21 7.758 21 12s0 6.364-1.318 7.682S16.242 21 12 21s-6.364 0-7.682-1.318S3 16.242 3 12" />
-                    <path d="M7.375 8H7.25m.125 4H7.25m.125 4H7.25m.25-8A.25.25 0 1 1 7 8a.25.25 0 0 1 .5 0m0 4a.25.25 0 1 1-.5 0a.25.25 0 0 1 .5 0m0 4a.25.25 0 1 1-.5 0a.25.25 0 0 1 .5 0M11 8h6m-6 4h6m-6 4h6" />
-                  </g>
-                </svg>
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-teal-500 rounded-full animate-pulse"></span>
-              </button>
+              {/* Aquí se reemplazó el botón estático por el componente funcional de notificaciones */}
+              <NotificationDropdown />
 
               <ThemeToggle />
               <ProfileDropdown onAbrirGestionUsuarios={() => setModalUsuariosAbierto(true)} />
