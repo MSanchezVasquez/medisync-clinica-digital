@@ -8,7 +8,12 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./backend/data:/app/data
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - PORT=3000
+      - CHOKIDAR_USEPOLLING=true
+    command: npm run dev
     restart: unless-stopped
 
   frontend:
