@@ -140,7 +140,7 @@ const ProfileDropdown = ({ onAbrirGestionUsuarios }: ProfileDropdownProps) => {
                 type="button"
                 onClick={() => {
                   setIsOpen(false);
-                  toast.info('Vista de perfil institucional en desarrollo.');
+                  navigate('/perfil');
                 }}
                 className="w-full text-left px-4 py-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 cursor-pointer font-medium rounded-lg"
               >

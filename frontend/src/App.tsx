@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Triaje } from './pages/Triaje';
+import { Perfil } from './pages/Profile';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 export function App() {
@@ -15,6 +16,7 @@ export function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/triaje" element={<Triaje />} />
+          <Route path="/perfil" element={<Perfil />} />
         </Route>
 
         {/* Redirección por defecto */}
