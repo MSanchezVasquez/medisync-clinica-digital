@@ -65,6 +65,8 @@ docker compose up -d --build
 
 ## Comandos Principales de Ejecución
 
+Ejecuta los siguientes comandos desde la raíz del repositorio.
+
 ### 1. Bot RPA de Extraer Reportes (Playwright)
 
 Para ejecutar el bot de automatización robótica de procesos que interactúa de forma autónoma con la plataforma web:
