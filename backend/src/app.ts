@@ -6,8 +6,8 @@ import triajeRoutes from './routes/triaje.routes.js';
 import usuarioRoutes from './routes/usuario.routes.js';
 import dniRoutes from './routes/dni.routes.js';
 import iaRoutes from './routes/ia.routes.js';
-import sensorRoutes from './routes/sensor.routes.js';
 import whatsappRoutes from './routes/whatsapp.routes.js';
+import { dispositivos, mediciones } from './routes/microtriaje.routes.js';
 
 import { estadoIa } from './controllers/ia.controller.js';
 
@@ -25,7 +25,8 @@ app.use('/api/consultar-dni', dniRoutes);
 app.use('/api/ia', iaRoutes);
 app.use('/api/estado-ia', iaRoutes);
 app.use('/api/triaje', iaRoutes);
-app.use('/api/sensores', sensorRoutes);
+app.use('/api/dispositivos', dispositivos);
+app.use('/api/mediciones', mediciones);
 app.use('/api/webhook/whatsapp', whatsappRoutes);
 
 export default app;

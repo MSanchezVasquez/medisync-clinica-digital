@@ -1,0 +1,109 @@
+// ARCHIVO HISTÓRICO / REFERENCIA.
+// Ya fue integrado en schema.prisma y migrado. NO copiar este fragmento ni
+// volver a ejecutar las instrucciones de migración que aparecían aquí.
+
+enum EstadoDispositivo {
+  OFFLINE        // sin latido > 30 s
+  LIBRE          // conectado y disponible
+  RESERVADO      // asignado a una sesión, esperando al paciente
+  MIDIENDO
+  COMPLETADO     // lectura lista, esperando que se guarde el triaje
+  ERROR
+  MANTENIMIENTO  // retirado manualmente por un ADMIN
+}
+
+enum TipoDispositivo {
+  ESTACION_BASICA          // FC + SpO2 + Temperatura  (prototipo Arduino/ESP32)
+  MONITOR_MULTIPARAMETRO   // + Presión arterial + Frec. respiratoria
+}
+
+enum EstadoSesion {
+  ESPERANDO_PACIENTE
+  MIDIENDO
+  COMPLETADA
+  CANCELADA
+  ERROR
+  EXPIRADA
+}
+
+model Dispositivo {
+  id            String            @id @default(uuid())
+  codigo        String            @unique          // "MT-100-001" (impreso en la carcasa)
+  nombre        String                              // "Estación Triaje 1"
+  tipo          TipoDispositivo
+  esSimulado    Boolean           @default(false)
+  ubicacion     String?                             // "Emergencia - Box 2"
+  firmware      String?
+  sensores      String[]                            // ["FC","SPO2","TEMP","PA","FR"]
+  claveHash     String                              // sha256 de la clave del dispositivo (la clave en claro se muestra UNA vez)
+  estado        EstadoDispositivo @default(OFFLINE)
+  bateria       Int?                                // %
+  senalWifi     Int?                                // dBm (RSSI)
+  ultimoLatido  DateTime?
+  activo        Boolean           @default(true)
+  creadoEn      DateTime          @default(now())
+  actualizadoEn DateTime          @updatedAt
+
+  sesiones      SesionMedicion[]
+}
+
+model SesionMedicion {
+  id            String       @id @default(uuid())
+  dispositivoId String
+  dispositivo   Dispositivo  @relation(fields: [dispositivoId], references: [id])
+  iniciadaPorId String?
+  iniciadaPor   User?        @relation(fields: [iniciadaPorId], references: [id])
+
+  estado        EstadoSesion @default(ESPERANDO_PACIENTE)
+  fase          String?                              // COLOCACION | ESTABILIZACION | MEDICION | PRESION | TEMPERATURA | VALIDACION
+  progreso      Int          @default(0)             // 0-100
+  mensajeError  String?
+
+  // contexto que se entrega al dispositivo (el simulador lo usa para generar datos coherentes; el real lo ignora)
+  edadPaciente  Int?
+  sintomasHint  String?      @db.Text
+  escenario     String?                              // solo dispositivos simulados (modo demo)
+
+  creadaEn      DateTime     @default(now())
+  iniciadaEn    DateTime?                            // cuando el dispositivo toma la sesión
+  finalizadaEn  DateTime?
+  duracionSeg   Int?
+  calidad       Int?                                 // SQI 0-100
+
+  // resultados
+  frecuenciaCardiaca     Int?
+  spo2                   Int?
+  temperatura            Float?
+  presionSistolica       Int?
+  presionDiastolica      Int?
+  frecuenciaRespiratoria Int?
+  news2                  Int?
+  alertas                Json?                       // [{codigo, severidad, mensaje}]
+  muestras               Json?                       // [{t, hr, spo2}] (máx. ~60 puntos)
+
+  triaje        Triaje?
+
+  @@index([dispositivoId, estado])
+}
+
+// ---------------------------------------------------------------------
+// EDITAR model User  -> agregar la relación inversa:
+//     sesionesMedicion SesionMedicion[]
+//
+// EDITAR model Triaje -> agregar estos campos (todos opcionales: los triajes viejos siguen válidos):
+// ---------------------------------------------------------------------
+//   // Signos vitales: SNAPSHOT inmutable (el PDF y el dashboard no dependen de la sesión)
+//   frecuenciaCardiaca     Int?
+//   spo2                   Int?
+//   temperatura            Float?
+//   presionSistolica       Int?
+//   presionDiastolica      Int?
+//   frecuenciaRespiratoria Int?
+//   news2                  Int?
+//   news2Riesgo            String?
+//   news2Parcial           Boolean?
+//   urgenciaIA             String?      // lo que respondió Gemini, antes de combinar con signos vitales
+//   signosManuales         Boolean      @default(false)
+//   sesionMedicionId       String?      @unique
+//   sesionMedicion         SesionMedicion? @relation(fields: [sesionMedicionId], references: [id])
+// ---------------------------------------------------------------------

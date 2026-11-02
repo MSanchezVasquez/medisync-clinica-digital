@@ -1,0 +1,15 @@
+{
+  "name": "medisync-iot-device",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sim": "tsx simulador.ts",
+    "sim:rapido": "tsx simulador.ts --rapido",
+    "test": "tsx --test lib/fisiologia.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

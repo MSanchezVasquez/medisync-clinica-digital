@@ -1,16 +1,21 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { toast } from 'sonner';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { descargarInformeTriaje } from '../utils/informeTriaje';
 import voiceIcon from '../assets/voice.png';
+import { PanelMicroTriaje } from '../components/PanelMicroTriaje';
 
 type DiagnosticoIA = {
   urgencia: 'ALTA' | 'MEDIA' | 'BAJA' | 'NULA';
   especialidad: string;
   recomendacion: string;
+  urgenciaIA?: 'ALTA' | 'MEDIA' | 'BAJA' | 'NULA';
 };
+
+type Dispositivo = { id: string; codigo: string; nombre: string; tipo: string; estado: string; esSimulado: boolean; ubicacion?: string };
+type Sesion = { id: string; estado: string; fase?: string; progreso: number; mensajeError?: string; calidad?: number; duracionSeg?: number; frecuenciaCardiaca?: number; spo2?: number; temperatura?: number; presionSistolica?: number; presionDiastolica?: number; frecuenciaRespiratoria?: number; news2?: number; finalizadaEn?: string; muestras?: { t: number; hr: number; spo2: number }[]; dispositivo?: { codigo: string; nombre: string; tipo: string; esSimulado: boolean; ubicacion?: string; firmware?: string } };
 
 type TriajeEdicion = {
   id: string;
@@ -48,12 +53,38 @@ export const Triaje = () => {
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [escuchando, setEscuchando] = useState(false);
+  const [dispositivos, setDispositivos] = useState<Dispositivo[]>([]);
+  const [dispositivoId, setDispositivoId] = useState('');
+  const [escenario, setEscenario] = useState('AUTO');
+  const [sesion, setSesion] = useState<Sesion | null>(null);
+  const [iniciandoMedicion, setIniciandoMedicion] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const textoPrevioRef = useRef<string>('');
   const containerRef = useRef<HTMLElement>(null);
   const resultadoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('medisync_token');
+    fetch(`${API}/dispositivos`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.ok ? r.json() : [])
+      .then((items: Dispositivo[]) => setDispositivos(items));
+  }, []);
+
+  useEffect(() => {
+    if (!sesion || ['COMPLETADA', 'ERROR', 'CANCELADA', 'EXPIRADA'].includes(sesion.estado)) return;
+    let vivo = true;
+    const consultar = async () => {
+      try {
+        const r = await fetch(`${API}/mediciones/${sesion.id}`, { headers: getAuthHeaders() });
+        if (r.ok && vivo) setSesion(await r.json());
+      } catch { /* El siguiente ciclo de sondeo recupera una desconexión temporal. */ }
+    };
+    const timer = window.setInterval(() => void consultar(), 1000);
+    void consultar();
+    return () => { vivo = false; window.clearInterval(timer); };
+  }, [sesion?.id, sesion?.estado]);
 
   // Helper para generar cabeceras con token JWT
   const getAuthHeaders = () => {
@@ -166,8 +197,10 @@ export const Triaje = () => {
           altura: Number(altura),
           sintomas,
           urgencia: d.urgencia,
+          urgenciaIA: d.urgenciaIA || d.urgencia,
           especialidad: d.especialidad,
           recomendacion: d.recomendacion,
+          sesionMedicionId: sesion?.estado === 'COMPLETADA' ? sesion.id : undefined,
         }),
       });
 
@@ -182,6 +215,27 @@ export const Triaje = () => {
     } finally {
       setGuardando(false);
     }
+  };
+
+  const iniciarMedicion = async () => {
+    if (!dispositivoId) return toast.warning('Seleccione un MicroTriaje disponible.');
+    setIniciandoMedicion(true);
+    try {
+      const r = await fetch(`${API}/mediciones`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({
+        dispositivoId, edad: Number(edad) || 35, sintomas, escenario: escenario === 'AUTO' ? undefined : escenario,
+      }) });
+      const data = await r.json().catch(() => null);
+      if (!r.ok) throw new Error(data?.error || 'No se pudo iniciar la medición.');
+      setSesion(data); toast.success('Equipo reservado. Coloque al paciente y espere la lectura.');
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'No se pudo iniciar.'); }
+    finally { setIniciandoMedicion(false); }
+  };
+
+  const cancelarMedicion = async () => {
+    if (!sesion) return;
+    await fetch(`${API}/mediciones/${sesion.id}/cancelar`, { method: 'POST', headers: getAuthHeaders() });
+    setSesion({ ...sesion, estado: 'CANCELADA' });
+    toast.info('Medición cancelada.');
   };
 
   const evaluar = async (e: React.FormEvent) => {
@@ -208,7 +262,7 @@ export const Triaje = () => {
       const r = await fetch(`${API}/triaje`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ sintomas }),
+        body: JSON.stringify({ sintomas, edad: Number(edad), sesionMedicionId: sesion?.estado === 'COMPLETADA' ? sesion.id : undefined }),
       });
 
       const data = await r.json().catch(() => null);
@@ -280,6 +334,15 @@ export const Triaje = () => {
       especialidad: diagnostico.especialidad,
       recomendacion: diagnostico.recomendacion,
       creadoEn: new Date().toISOString(),
+      urgenciaIA: diagnostico.urgenciaIA,
+      signosVitales: sesion?.estado === 'COMPLETADA' ? {
+        origen: 'DISPOSITIVO', medidoEn: sesion.finalizadaEn, frecuenciaCardiaca: sesion.frecuenciaCardiaca,
+        spo2: sesion.spo2, temperatura: sesion.temperatura, presionSistolica: sesion.presionSistolica,
+        presionDiastolica: sesion.presionDiastolica, frecuenciaRespiratoria: sesion.frecuenciaRespiratoria,
+        calidad: sesion.calidad, duracionSeg: sesion.duracionSeg, muestras: sesion.muestras,
+        dispositivo: sesion.dispositivo,
+        news2: sesion.news2 == null ? null : { total: sesion.news2, riesgo: sesion.news2 >= 7 ? 'ALTO' : sesion.news2 >= 5 ? 'MEDIO' : 'BAJO', parcial: sesion.presionSistolica == null || sesion.frecuenciaRespiratoria == null },
+      } : null,
     });
   };
 
@@ -440,6 +503,18 @@ export const Triaje = () => {
         </section>
 
         <div className="space-y-6">
+          <PanelMicroTriaje
+            dispositivos={dispositivos}
+            dispositivoId={dispositivoId}
+            escenario={escenario}
+            sesion={sesion}
+            iniciando={iniciandoMedicion}
+            alElegir={setDispositivoId}
+            alCambiarEscenario={setEscenario}
+            alMedir={() => void iniciarMedicion()}
+            alCancelar={() => void cancelarMedicion()}
+            alReintentar={() => { setSesion(null); setDispositivoId(''); }}
+          />
           {diagnostico ? (
             <section
               ref={resultadoRef}

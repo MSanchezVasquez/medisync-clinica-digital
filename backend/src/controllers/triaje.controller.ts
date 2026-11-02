@@ -44,6 +44,7 @@ export const listarTriajes = async (
 ): Promise<void> => {
   try {
     const triajes = await prisma.triaje.findMany({
+      include: { sesionMedicion: { include: { dispositivo: { select: { codigo: true, nombre: true, tipo: true, esSimulado: true, ubicacion: true, firmware: true } } } }, medico: { select: { nombre: true, cmp: true } } },
       orderBy: {
         fecha: 'desc',
       },
@@ -74,6 +75,7 @@ export const obtenerTriajePorId = async (
   try {
     const triaje = await prisma.triaje.findUnique({
       where: { id },
+      include: { sesionMedicion: { include: { dispositivo: { select: { codigo: true, nombre: true, tipo: true, esSimulado: true, ubicacion: true, firmware: true } } } }, medico: { select: { nombre: true, cmp: true } } },
     });
 
     if (!triaje) {
@@ -105,6 +107,10 @@ export const crearTriaje = async (
       urgencia,
       especialidad,
       recomendacion,
+      urgenciaIA,
+      sesionMedicionId,
+      signosManuales,
+      signos,
     } = req.body;
 
     if (!sintomas || !urgencia || !especialidad || !recomendacion) {
@@ -114,7 +120,22 @@ export const crearTriaje = async (
       return;
     }
 
-    const nuevoTriaje = await prisma.triaje.create({
+    let sesion = null;
+    if (sesionMedicionId) {
+      const sesionEncontrada = await prisma.sesionMedicion.findUnique({ where: { id: String(sesionMedicionId) }, include: { triaje: true } });
+      sesion = sesionEncontrada;
+      if (!sesion || sesion.estado !== 'COMPLETADA' || sesion.triaje || !sesion.finalizadaEn || Date.now() - sesion.finalizadaEn.getTime() > 15 * 60_000) {
+        res.status(409).json({ error: 'La medición no está disponible o venció. Repita la medición.' });
+        return;
+      }
+      if (sesion.iniciadaPorId !== usuario?.id && usuario?.rol !== 'ADMIN') {
+        res.status(403).json({ error: 'No tiene acceso a esta medición.' });
+        return;
+      }
+    }
+
+    const nuevoTriaje = await prisma.$transaction(async (tx) => {
+      const creado = await tx.triaje.create({
       data: {
         nombreCompleto: nombreCompleto?.trim() || null,
         dni: dni?.trim() || null,
@@ -126,8 +147,23 @@ export const crearTriaje = async (
         urgencia: String(urgencia).toUpperCase(),
         especialidad: especialidad.trim(),
         recomendacion: recomendacion.trim(),
-        medicoId: usuario?.id || null,
+        ...(usuario?.id ? { medico: { connect: { id: usuario.id } } } : {}),
+        urgenciaIA: String(urgenciaIA || urgencia).toUpperCase(),
+        signosManuales: Boolean(signosManuales && signos),
+        ...(sesion ? { sesionMedicion: { connect: { id: sesion.id } } } : {}),
+        frecuenciaCardiaca: sesion?.frecuenciaCardiaca ?? (Number(signos?.frecuenciaCardiaca) || null),
+        spo2: sesion?.spo2 ?? (Number(signos?.spo2) || null),
+        temperatura: sesion?.temperatura ?? (Number(signos?.temperatura) || null),
+        presionSistolica: sesion?.presionSistolica ?? (Number(signos?.presionSistolica) || null),
+        presionDiastolica: sesion?.presionDiastolica ?? (Number(signos?.presionDiastolica) || null),
+        frecuenciaRespiratoria: sesion?.frecuenciaRespiratoria ?? (Number(signos?.frecuenciaRespiratoria) || null),
+        news2: sesion?.news2 ?? null,
+        news2Riesgo: sesion?.news2 == null ? null : sesion.news2 >= 7 ? 'ALTO' : sesion.news2 >= 5 ? 'MEDIO' : 'BAJO',
+        news2Parcial: sesion?.news2 == null || sesion.presionSistolica == null || sesion.frecuenciaRespiratoria == null,
       },
+      });
+      if (sesion) await tx.dispositivo.update({ where: { id: sesion.dispositivoId }, data: { estado: 'LIBRE' } });
+      return creado;
     });
 
     // 🚀 Integración del Agente No-Code operativo

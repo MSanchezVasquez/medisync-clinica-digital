@@ -31,24 +31,7 @@ const NotificationDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const [alertas, setAlertas] = useState<AlertaMedica[]>([
-    {
-      id: '1',
-      tipo: 'CRITICO',
-      titulo: 'Alerta IoT - Cama 4',
-      mensaje: 'Frecuencia cardíaca elevada detectada en tiempo real.',
-      tiempo: 'Hace 2 min',
-      leida: false,
-    },
-    {
-      id: '2',
-      tipo: 'ADVERTENCIA',
-      titulo: 'Nuevo Triaje Ingresado',
-      mensaje: 'Paciente registrado con síntomas de dolor agudo.',
-      tiempo: 'Hace 15 min',
-      leida: false,
-    },
-  ]);
+  const [alertas, setAlertas] = useState<AlertaMedica[]>([]);
 
   const noLeidas = alertas.filter((a) => !a.leida).length;
 
@@ -416,6 +399,16 @@ export const Header = () => {
                   />
                 </svg>
                 Triaje
+              </Link>
+              <Link
+                to="/microtriajes"
+                className={`text-sm font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
+                  esRutaActiva('/microtriajes')
+                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30 ring-2 ring-teal-600/40 scale-[1.02]'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'
+                }`}
+              >
+                MicroTriajes
               </Link>
             </nav>
 

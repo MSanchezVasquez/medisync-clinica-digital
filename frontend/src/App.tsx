@@ -3,6 +3,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Triaje } from './pages/Triaje';
 import { Perfil } from './pages/Profile';
+import { MicroTriajes } from './pages/MicroTriajes';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 export function App() {
@@ -16,6 +17,7 @@ export function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/triaje" element={<Triaje />} />
+          <Route path="/microtriajes" element={<MicroTriajes />} />
           <Route path="/perfil" element={<Perfil />} />
         </Route>
 

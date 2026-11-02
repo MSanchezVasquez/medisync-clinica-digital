@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { descargarInformeTriaje } from '../utils/informeTriaje';
+import { construirDatosInforme, descargarInformeTriaje } from '../utils/informeTriaje';
 
 type Triaje = {
   id: string;
@@ -17,16 +17,19 @@ type Triaje = {
   recomendacion: string;
   creadoEn?: string;
   fecha?: string;
+  frecuenciaCardiaca?: number | null;
+  spo2?: number | null;
+  temperatura?: number | null;
+  presionSistolica?: number | null;
+  presionDiastolica?: number | null;
+  frecuenciaRespiratoria?: number | null;
+  news2?: number | null;
+  news2Riesgo?: string | null;
+  news2Parcial?: boolean;
+  urgenciaIA?: string | null;
+  medico?: { nombre: string; cmp?: string | null } | null;
+  sesionMedicion?: { finalizadaEn?: string | null; calidad?: number | null; duracionSeg?: number | null; muestras?: { t: number; hr: number; spo2: number }[] | null; dispositivo?: { codigo: string; nombre?: string; tipo?: string; esSimulado?: boolean; ubicacion?: string; firmware?: string } | null } | null;
 };
-
-interface TelemetriaIoT {
-  dispositivoId: string;
-  paciente: string;
-  frecuenciaCardiaca: number;
-  temperatura: number;
-  spo2: number;
-  timestamp: string;
-}
 
 const API = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
@@ -40,7 +43,6 @@ export const Dashboard = () => {
   const [estadoIA, setEstadoIA] = useState<'Comprobando' | 'Activo' | 'No disponible'>(
     'Comprobando'
   );
-  const [telemetriaIoT, setTelemetriaIoT] = useState<TelemetriaIoT[]>([]);
 
   const cargar = useCallback(async () => {
     const token = localStorage.getItem('medisync_token');
@@ -103,24 +105,6 @@ export const Dashboard = () => {
       .catch(() => setEstadoIA('No disponible'));
     return () => window.clearTimeout(tareaInicial);
   }, [cargar]);
-
-  useEffect(() => {
-    const fetchIoT = async () => {
-      try {
-        const res = await fetch(`${API}/sensores/stream`);
-        if (res.ok) {
-          const data = await res.json();
-          setTelemetriaIoT(data);
-        }
-      } catch (e) {
-        console.error('Error al sincronizar telemetría IoT', e);
-      }
-    };
-
-    fetchIoT();
-    const interval = setInterval(fetchIoT, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   const eliminarTriaje = async (id: string) => {
     if (!confirm('¿Está seguro de eliminar este registro de triaje?')) return;
@@ -192,64 +176,9 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* BLOQUE INDEPENDIENTE 1: Monitoreo IoT en Tiempo Real (Camas UCI) */}
-      <section className="bg-white/90 dark:bg-slate-900/90 rounded-2xl border border-white dark:border-slate-800 shadow-xl overflow-hidden p-6">
-        <div className="flex items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-800 pb-3">
-          <div className="flex items-center gap-3">
-            <span className="w-3.5 h-3.5 bg-emerald-500 rounded-full animate-pulse" />
-            <h3 className="text-xl font-bold">Monitoreo IoT en Tiempo Real (Camas UCI)</h3>
-          </div>
-          <span className="text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 px-3 py-1 rounded-full font-semibold">
-            Dispositivo Activo
-          </span>
-        </div>
-
-        {telemetriaIoT.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">
-            <p className="font-semibold">Esperando telemetría del dispositivo simulado...</p>
-            <p className="text-xs mt-1">Ejecute el script del emulador IoT en su terminal.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-sm text-slate-400 px-1">
-              <span>
-                Nodo / Ubicación:{' '}
-                <strong className="text-slate-200">{telemetriaIoT[0].paciente}</strong>
-              </span>
-              <span>
-                ID Dispositivo:{' '}
-                <strong className="text-slate-200">{telemetriaIoT[0].dispositivoId}</strong>
-              </span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                <p className="text-xs text-slate-400 font-semibold uppercase">Pulso Cardíaco</p>
-                <p className="text-3xl font-bold text-teal-600 mt-1">
-                  {telemetriaIoT[0].frecuenciaCardiaca}{' '}
-                  <span className="text-sm font-normal text-slate-500">bpm</span>
-                </p>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                <p className="text-xs text-slate-400 font-semibold uppercase">
-                  Temperatura Corporal
-                </p>
-                <p className="text-3xl font-bold text-amber-600 mt-1">
-                  {telemetriaIoT[0].temperatura}{' '}
-                  <span className="text-sm font-normal text-slate-500">°C</span>
-                </p>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                <p className="text-xs text-slate-400 font-semibold uppercase">
-                  Saturación de Oxígeno (SpO2)
-                </p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">
-                  {telemetriaIoT[0].spo2}{' '}
-                  <span className="text-sm font-normal text-slate-500">%</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+      <section className="bg-white/90 dark:bg-slate-900/90 rounded-2xl border border-white dark:border-slate-800 shadow-xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div><h3 className="text-xl font-bold">Estaciones de MicroTriaje</h3><p className="text-sm text-slate-500 mt-1">Consulte conexión, disponibilidad, sensores y estado de las lecturas.</p></div>
+        <button onClick={() => navigate('/microtriajes')} className="px-4 py-2.5 rounded-xl bg-teal-600 text-white font-semibold">Ver dispositivos</button>
       </section>
 
       {/* BLOQUE INDEPENDIENTE 2: Historial de Triajes */}
@@ -305,31 +234,17 @@ export const Dashboard = () => {
                       <p className="text-sm mt-1">
                         <strong>Especialidad:</strong> {t.especialidad}
                       </p>
+                      {[t.frecuenciaCardiaca, t.spo2, t.temperatura].some((v) => v != null) && (
+                        <p className="text-sm mt-2 text-teal-800 dark:text-teal-300">
+                          <strong>Signos vitales:</strong> {t.frecuenciaCardiaca != null ? `FC ${t.frecuenciaCardiaca} lpm · ` : ''}{t.spo2 != null ? `SpO₂ ${t.spo2}% · ` : ''}{t.temperatura != null ? `T ${t.temperatura} °C` : ''}
+                          {t.news2 != null && <span className="ml-2 text-xs font-bold">NEWS2 {t.news2}{t.news2Parcial ? ' · parcial' : ''}</span>}
+                        </p>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-2 shrink-0 items-start">
                       <button
                         onClick={() =>
-                          descargarInformeTriaje({
-                            nombreCompleto:
-                              t.nombreCompleto ||
-                              (t.telefono
-                                ? `WhatsApp: ${t.telefono.replace('@lid', '')}`
-                                : 'Paciente'),
-                            dni: t.dni || 'Sin registrar',
-                            edad: t.edad ?? 0,
-                            peso: t.peso ?? 0,
-                            altura: t.altura ?? 0,
-                            sintomas: t.sintomas,
-                            urgencia:
-                              t.urgencia === 'ALTA' ||
-                              t.urgencia === 'MEDIA' ||
-                              t.urgencia === 'BAJA'
-                                ? t.urgencia
-                                : 'MEDIA',
-                            especialidad: t.especialidad,
-                            recomendacion: t.recomendacion,
-                            creadoEn: t.creadoEn || t.fecha || new Date().toISOString(),
-                          })
+                          descargarInformeTriaje(construirDatosInforme(t))
                         }
                         className="px-3 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold cursor-pointer"
                       >

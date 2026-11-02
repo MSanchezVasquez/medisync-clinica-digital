@@ -1,0 +1,56 @@
+{
+  "apiUrl": "http://localhost:3000/api",
+  "dispositivos": [
+    {
+      "codigo": "MT-100-001",
+      "clave": "CAMBIAR-clave-sim-mt100-001",
+      "tipo": "MONITOR_MULTIPARAMETRO",
+      "firmware": "1.0.0",
+      "sensores": ["FC", "SPO2", "TEMP", "PA", "FR"],
+      "conPresion": true,
+      "conFR": true,
+      "fases": [
+        { "fase": "COLOCACION", "seg": 8 },
+        { "fase": "ESTABILIZACION", "seg": 10 },
+        { "fase": "MEDICION", "seg": 40 },
+        { "fase": "PRESION", "seg": 40 },
+        { "fase": "TEMPERATURA", "seg": 5 },
+        { "fase": "VALIDACION", "seg": 3 }
+      ]
+    },
+    {
+      "codigo": "MT-300-001",
+      "clave": "CAMBIAR-clave-sim-mt300-001",
+      "tipo": "MONITOR_MULTIPARAMETRO",
+      "firmware": "1.0.0",
+      "sensores": ["FC", "SPO2", "TEMP", "PA", "FR"],
+      "conPresion": true,
+      "conFR": true,
+      "fases": [
+        { "fase": "COLOCACION", "seg": 8 },
+        { "fase": "ESTABILIZACION", "seg": 10 },
+        { "fase": "MEDICION", "seg": 40 },
+        { "fase": "PRESION", "seg": 40 },
+        { "fase": "TEMPERATURA", "seg": 5 },
+        { "fase": "VALIDACION", "seg": 3 }
+      ]
+    },
+    {
+      "codigo": "MT-100-002",
+      "clave": "CAMBIAR-clave-sim-mt100-002",
+      "tipo": "MONITOR_MULTIPARAMETRO",
+      "firmware": "1.0.0",
+      "sensores": ["FC", "SPO2", "TEMP", "PA", "FR"],
+      "conPresion": true,
+      "conFR": true,
+      "fases": [
+        { "fase": "COLOCACION", "seg": 8 },
+        { "fase": "ESTABILIZACION", "seg": 10 },
+        { "fase": "MEDICION", "seg": 40 },
+        { "fase": "PRESION", "seg": 40 },
+        { "fase": "TEMPERATURA", "seg": 5 },
+        { "fase": "VALIDACION", "seg": 3 }
+      ]
+    }
+  ]
+}

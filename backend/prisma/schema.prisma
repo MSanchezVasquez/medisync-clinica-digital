@@ -17,6 +17,30 @@ enum Role {
   ENFERMERO
 }
 
+enum EstadoDispositivo {
+  OFFLINE
+  LIBRE
+  RESERVADO
+  MIDIENDO
+  COMPLETADO
+  ERROR
+  MANTENIMIENTO
+}
+
+enum TipoDispositivo {
+  ESTACION_BASICA
+  MONITOR_MULTIPARAMETRO
+}
+
+enum EstadoSesion {
+  ESPERANDO_PACIENTE
+  MIDIENDO
+  COMPLETADA
+  CANCELADA
+  ERROR
+  EXPIRADA
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -30,6 +54,7 @@ model User {
 
   // Relación: Un médico puede tener múltiples triajes registrados
   triajes       Triaje[]
+  sesionesMedicion SesionMedicion[]
 }
 
 model Triaje {
@@ -49,4 +74,91 @@ model Triaje {
   // Relación con el profesional de la salud que atiende/registra
   medicoId      String?
   medico        User?    @relation(fields: [medicoId], references: [id])
+
+  // Snapshot de signos: el informe queda estable aunque cambie la sesión.
+  frecuenciaCardiaca     Int?
+  spo2                   Int?
+  temperatura            Float?
+  presionSistolica       Int?
+  presionDiastolica      Int?
+  frecuenciaRespiratoria Int?
+  news2                  Int?
+  news2Riesgo            String?
+  news2Parcial           Boolean  @default(false)
+  urgenciaIA             String?
+  signosManuales         Boolean  @default(false)
+  sesionMedicionId       String?  @unique
+  sesionMedicion         SesionMedicion? @relation(fields: [sesionMedicionId], references: [id], onDelete: SetNull)
+
+  signosVitales SignoVital[]
+}
+
+// Modelo histórico ya existente en la BD local; se conserva para no perder datos.
+model SignoVital {
+  id                     String   @id
+  dispositivoId          String
+  frecuenciaCardiaca     Int
+  presionSistolica       Int
+  presionDiastolica      Int
+  temperatura            Float
+  saturacionOxigeno      Int
+  frecuenciaRespiratoria Int
+  estado                 String
+  creadoEn               DateTime @default(now())
+  triajeId               String?
+  triaje                 Triaje?  @relation(fields: [triajeId], references: [id], onDelete: SetNull)
+
+  @@index([creadoEn])
+}
+
+model Dispositivo {
+  id           String            @id @default(uuid())
+  codigo       String            @unique
+  nombre       String
+  tipo         TipoDispositivo
+  esSimulado   Boolean           @default(false)
+  ubicacion    String?
+  firmware     String?
+  sensores     String[]
+  claveHash    String
+  estado       EstadoDispositivo @default(OFFLINE)
+  bateria      Int?
+  senalWifi    Int?
+  ultimoLatido DateTime?
+  activo       Boolean           @default(true)
+  creadoEn     DateTime          @default(now())
+  actualizadoEn DateTime         @updatedAt
+  sesiones     SesionMedicion[]
+}
+
+model SesionMedicion {
+  id            String       @id @default(uuid())
+  dispositivoId String
+  dispositivo   Dispositivo  @relation(fields: [dispositivoId], references: [id])
+  iniciadaPorId String?
+  iniciadaPor   User?        @relation(fields: [iniciadaPorId], references: [id], onDelete: SetNull)
+  estado        EstadoSesion @default(ESPERANDO_PACIENTE)
+  fase          String?
+  progreso      Int          @default(0)
+  mensajeError  String?
+  edadPaciente  Int?
+  sintomasHint  String?      @db.Text
+  escenario     String?
+  creadaEn      DateTime     @default(now())
+  iniciadaEn    DateTime?
+  finalizadaEn  DateTime?
+  duracionSeg   Int?
+  calidad       Int?
+  frecuenciaCardiaca     Int?
+  spo2                   Int?
+  temperatura            Float?
+  presionSistolica       Int?
+  presionDiastolica      Int?
+  frecuenciaRespiratoria Int?
+  news2                  Int?
+  alertas       Json?
+  muestras      Json?
+  triaje        Triaje?
+
+  @@index([dispositivoId, estado])
 }

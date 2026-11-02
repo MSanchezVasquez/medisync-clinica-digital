@@ -16,6 +16,20 @@ services:
     command: npm run dev
     restart: unless-stopped
 
+  microtriaje-simulador:
+    image: node:24-alpine
+    working_dir: /app
+    volumes:
+      - ./iot-device:/app
+    environment:
+      API_URL: http://backend:3000/api
+      SIM_SPEED: ${SIM_SPEED:-1}
+    command: sh -c "npm install && npm run sim"
+    depends_on:
+      - backend
+    profiles: ["iot"]
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
