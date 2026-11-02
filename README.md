@@ -1,86 +1,112 @@
-# 🏥 MediSync Perú - Plataforma de Pre-Triaje Clínico & Telemetría UCI
+# MediSync Perú - Sistema de Triaje & Telemetría UCI 🚀
 
-Sistema integral de pre-triaje clínico asistido por Inteligencia Artificial (Gemini), telemetría IoT en tiempo real para camas UCI, automatización No-Code (Make/n8n) y gestión hospitalaria modular.
-
----
-
-## 🌐 Enlaces en Producción
-
-* **Frontend (Vercel):** [https://medisync-clinica-digital.vercel.app](https://medisync-clinica-digital.vercel.app)
-* **Backend API (Render):** [https://medisync-peru.onrender.com](https://medisync-peru.onrender.com)
+> **Plataforma médica de grado clínico** para la automatización de triajes hospitalarios, procesamiento asistido por Inteligencia Artificial, monitoreo IoT de constante vital biométrica y bots RPA de extracción masiva de reportes.
 
 ---
 
-## 🚀 Guía de Instalación y Ejecución Local
+## 🛠️ Tecnologías y Arquitectura
 
-Sigue estos pasos para clonar el repositorio y levantar el proyecto completo en tu ordenador.
+### **Frontend & UI**
+* **React 18** con **TypeScript** y **Vite**
+* **Tailwind CSS** + **Framer Motion** (Micro-interacciones y UI en modo oscuro/claro)
+* **Sonner** (Notificaciones flotantes en tiempo real)
 
-### Prerrequisitos
-Asegúrate de tener instalado en tu sistema:
-* [Git](https://git-scm.com/)
-* [Node.js](https://nodejs.org/) (Versión 18 o superior recomendada)
-* [pnpm](https://pnpm.io/) (Puedes instalarlo ejecutando `npm install -g pnpm`)
-* Una instancia de base de datos PostgreSQL (puedes usar [Supabase](https://supabase.com/)).
+### **Backend & Servicios**
+* **Node.js** + **Express.js** + **TypeScript**
+* **Supabase** (PostgreSQL Relacional en la Nube con ACID Compliance)
+* **Docker** & **Docker Compose** (Contenedorización multi-servicio)
 
-### 1. Clonar el repositorio
-Abre tu terminal y ejecuta el siguiente comando:
+### **Automatización, IoT & IA**
+* **RPA Bot:** Playwright (Extracción autónoma e interacción con interfaz web)
+* **IoT Emulator:** Node.js Edge Script (`DISP-UCI-04` emitiendo HR, Temp, SpO2 cada 5s)
+* **No-Code / Low-Code:** Make.com (Canal automatizado de triaje por correo electrónico)
+* **Laboratorio IA:** Streamlit + Python (Auditoría de respuestas del modelo)
+
+---
+
+## Estructura del Monorepositorio
+
 ```bash
-git clone [https://github.com/mcodex23/medisync-peru.git](https://github.com/mcodex23/medisync-peru.git)
+medisync-peru/
+├── backend/          # REST API con Express, TypeScript y conexión Supabase
+├── frontend/         # Dashboard en React, Tailwind CSS, Notificaciones y Perfil
+├── rpa-bot/          # Bot RPA autónomo con Playwright (bot_reporte.ts)
+├── iot-device/       # Emulador de telemetría IoT biométrica (iot-simulador.js)
+├── streamlit/        # Módulo de laboratorio y auditoría de IA en Python
+├── docker-compose.yml # Orquestación local multi-servicio con hot-reload
+└── README.md         # Documentación principal del sistema
+
+```
+
+---
+
+## Guía de Instalación y Despliegue Local
+
+### 1️. Clonar el Repositorio
+
+```bash
+git clone [https://github.com/MSanchezVasquez/medisync-clinica-digital.git](https://github.com/MSanchezVasquez/medisync-clinica-digital.git)
 cd medisync-peru
+
 ```
 
-### 2. Configurar las Variables de Entorno
-Crea un archivo .env dentro de la carpeta backend/ basándote en la siguiente estructura:
+### 2️. Despliegue con Docker Compose (Recomendado)
+
+Asegúrate de tener **Docker Desktop** abierto y ejecuta en la raíz del proyecto:
 
 ```bash
-PORT=3000
-DATABASE_URL="tu_cadena_de_conexion_postgresql"
-JWT_SECRET="tu_clave_secreta_jwt"
-GEMINI_API_KEY="tu_api_key_de_google_gemini"
-NOCODE_WEBHOOK_URL="tu_url_de_webhook_make_o_n8n"
+docker compose up -d --build
+
 ```
 
-### 3. Instalar dependencias
-Instala todas las dependencias del monorepo utilizando pnpm:
+*Esto levantará el backend, frontend y servicios acoplados con **Hot-Reload habilitado** mediante `CHOKIDAR_USEPOLLING=true`.*
+
+---
+
+## Comandos Principales de Ejecución
+
+### 1. Bot RPA de Extraer Reportes (Playwright)
+
+Para ejecutar el bot de automatización robótica de procesos que interactúa de forma autónoma con la plataforma web:
 
 ```bash
-pnpm install
+npx tsx rpa-bot/bot_reporte.ts
+
 ```
 
-### 4. Configurar la Base de Datos (Prisma)
-Sincroniza el esquema de Prisma con tu base de datos PostgreSQL:
+> **Nota:** La primera vez que lo ejecutes en un nuevo entorno, asegúrate de instalar los navegadores de Playwright:
+> ```bash
+> npx playwright install
+> 
+> ```
+> 
+> 
+
+### 2. Emulador de Telemetría IoT en Tiempo Real
+
+Para iniciar la transmisión continua de constantes vitales (Cama 4 - `DISP-UCI-04`):
 
 ```bash
-cd backend
-pnpm prisma db push
-cd ..
+node iot-device/iot-simulador.js
+
 ```
 
-### 5. Ejecutar la Aplicación en Modo Desarrollo
-Puedes iniciar los servicios de forma independiente:
+### 3. Entorno de Auditoría IA (Streamlit)
 
-Iniciar el Backend:
+Para ejecutar la interfaz de prueba de modelos de Inteligencia Artificial:
 
 ```bash
-cd backend
-pnpm dev
+pip install -r streamlit/requirements.txt
+streamlit run streamlit/app.py
+
 ```
 
-Iniciar el Frontend:
+---
 
-```bash
-cd frontend
-pnpm dev
-```
+## 🧪 Pruebas de Automatización e Integración
 
-Una vez iniciado, podrás acceder al frontend localmente (generalmente en http://localhost:5173 o el puerto que indique tu terminal de Vite) y conectarlo con tu API local en http://localhost:3000.
+1. **Monitoreo IoT:** Inicia el emulador IoT y abre `http://localhost:5173/dashboard`. Verás cómo los valores de *Pulso Cardíaco, Temperatura y SpO2* se actualizan dinámicamente cada 5 segundos.
+2. **Flujo de Triaje IA:** Envía un caso sintomático desde el frontend o mediante el flujo automatizado de correo en **Make.com** para recibir la clasificación de urgencia.
+3. **Extracción RPA:** Ejecuta el comando `npx tsx rpa-bot/bot_reporte.ts` para presenciar la automatización del navegador completando credenciales y descargando informes clínicos.
 
-🛠️ Tecnologías Principales
-
-| Frontend: React, TypeScript, Tailwind CSS, Vite.
-
-| Backend: Node.js, Express, TypeScript, Prisma ORM, PostgreSQL (Supabase).
-
-| Inteligencia Artificial: Google Gemini API (Evaluación de pre-triaje clínico).
-
-| Automatización: Make / n8n (Webhooks de notificaciones en tiempo real).
+---
