@@ -105,6 +105,19 @@ streamlit run streamlit/app.py
 
 ---
 
+### 4. UCI virtual (TA5)
+
+Inicia sesión y abre **Monitoreo IoT → Entrar a la UCI virtual** desde el dashboard. En la sala puedes recorrer la habitación, seleccionar la cama y abrir el monitor de la Cama 4. La vista también ofrece un modo inmersivo cuando el navegador detecta un visor WebXR compatible.
+
+Con el backend local disponible en el puerto 3000, ejecuta el simulador desde PowerShell:
+
+```powershell
+$env:IOT_API_URL = 'http://localhost:3000/api/sensores'
+node iot-device/iot-simulador.js
+```
+
+Sin `IOT_API_URL`, el simulador usa su destino desplegado. Para preparar la evidencia, consulta el [avance de la memoria técnica U5](docs/ta5-uci-virtual.md).
+
 ## 🧪 Pruebas de Automatización e Integración
 
 1. **Monitoreo IoT:** Inicia el emulador IoT y abre `http://localhost:5173/dashboard`. Verás cómo los valores de *Pulso Cardíaco, Temperatura y SpO2* se actualizan dinámicamente cada 5 segundos.

@@ -1,4 +1,5 @@
-const API_URL = 'https://medisync-clinica-digital.onrender.com/api/sensores';
+const API_URL =
+  process.env.IOT_API_URL || 'https://medisync-clinica-digital.onrender.com/api/sensores';
 
 const generarDatosBiometricos = () => {
   // Simular pulso cardíaco
