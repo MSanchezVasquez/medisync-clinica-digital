@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState, type MouseEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { motion } from 'framer-motion';
 
 export const ThemeToggle = ({ className = '' }: { className?: string }) => {
@@ -9,18 +10,45 @@ export const ThemeToggle = ({ className = '' }: { className?: string }) => {
     return storedTheme === 'dark' || (!storedTheme && prefersDark);
   });
 
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
 
-  const toggleTheme = () => {
-    const newTheme = isDark ? 'light' : 'dark';
-    localStorage.setItem('theme', newTheme);
-    setIsDark(!isDark);
+  const toggleTheme = (event: MouseEvent<HTMLButtonElement>) => {
+    const root = document.documentElement;
+    if (root.classList.contains('theme-transition')) return;
+
+    const applyTheme = () => {
+      localStorage.setItem('theme', isDark ? 'light' : 'dark');
+      setIsDark(!isDark);
+    };
+
+    if (
+      typeof document.startViewTransition !== 'function' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      applyTheme();
+      return;
+    }
+
+    const button = event.currentTarget.getBoundingClientRect();
+    const x = button.left + button.width / 2;
+    const y = button.top + button.height / 2;
+    const radius = Math.ceil(
+      Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)),
+    );
+
+    root.style.setProperty('--theme-origin', `${x}px ${y}px`);
+    root.style.setProperty('--theme-radius', `${radius}px`);
+    root.classList.add('theme-transition');
+
+    const transition = document.startViewTransition(() => flushSync(applyTheme));
+    const clearTransition = () => {
+      root.classList.remove('theme-transition');
+      root.style.removeProperty('--theme-origin');
+      root.style.removeProperty('--theme-radius');
+    };
+    void transition.finished.then(clearTransition, clearTransition);
   };
 
   return (
