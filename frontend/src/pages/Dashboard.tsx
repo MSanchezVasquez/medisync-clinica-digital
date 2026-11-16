@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useTelemetriaIoT } from '../hooks/useTelemetriaIoT';
+import { API } from '../services/api';
 import { descargarInformeTriaje } from '../utils/informeTriaje';
 
 type Triaje = {
@@ -19,19 +21,6 @@ type Triaje = {
   fecha?: string;
 };
 
-interface TelemetriaIoT {
-  dispositivoId: string;
-  paciente: string;
-  frecuenciaCardiaca: number;
-  temperatura: number;
-  spo2: number;
-  timestamp: string;
-}
-
-const API = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}/api`
-  : 'http://localhost:3000/api';
-
 export const Dashboard = () => {
   const navigate = useNavigate();
   const [metricas, setMetricas] = useState({ pacientesHoy: 0, urgenciasAltas: 0 });
@@ -40,7 +29,7 @@ export const Dashboard = () => {
   const [estadoIA, setEstadoIA] = useState<'Comprobando' | 'Activo' | 'No disponible'>(
     'Comprobando'
   );
-  const [telemetriaIoT, setTelemetriaIoT] = useState<TelemetriaIoT[]>([]);
+  const { lecturas: telemetriaIoT } = useTelemetriaIoT();
 
   const cargar = useCallback(async () => {
     const token = localStorage.getItem('medisync_token');
@@ -103,24 +92,6 @@ export const Dashboard = () => {
       .catch(() => setEstadoIA('No disponible'));
     return () => window.clearTimeout(tareaInicial);
   }, [cargar]);
-
-  useEffect(() => {
-    const fetchIoT = async () => {
-      try {
-        const res = await fetch(`${API}/sensores/stream`);
-        if (res.ok) {
-          const data = await res.json();
-          setTelemetriaIoT(data);
-        }
-      } catch (e) {
-        console.error('Error al sincronizar telemetría IoT', e);
-      }
-    };
-
-    fetchIoT();
-    const interval = setInterval(fetchIoT, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   const eliminarTriaje = async (id: string) => {
     if (!confirm('¿Está seguro de eliminar este registro de triaje?')) return;
@@ -194,14 +165,22 @@ export const Dashboard = () => {
 
       {/* BLOQUE INDEPENDIENTE 1: Monitoreo IoT en Tiempo Real (Camas UCI) */}
       <section className="bg-white/90 dark:bg-slate-900/90 rounded-2xl border border-white dark:border-slate-800 shadow-xl overflow-hidden p-6">
-        <div className="flex items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-3">
             <span className="w-3.5 h-3.5 bg-emerald-500 rounded-full animate-pulse" />
             <h3 className="text-xl font-bold">Monitoreo IoT en Tiempo Real (Camas UCI)</h3>
           </div>
-          <span className="text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 px-3 py-1 rounded-full font-semibold">
-            Dispositivo Activo
-          </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 px-3 py-1 rounded-full font-semibold">
+              Dispositivo Activo
+            </span>
+            <Link
+              to="/uci-virtual"
+              className="rounded-lg border border-teal-200 px-3 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-50 dark:border-teal-800 dark:text-teal-300 dark:hover:bg-teal-900/40"
+            >
+              Entrar a la UCI virtual
+            </Link>
+          </div>
         </div>
 
         {telemetriaIoT.length === 0 ? (
