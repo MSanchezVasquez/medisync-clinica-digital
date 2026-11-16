@@ -25,7 +25,7 @@
 }
 
 :root.theme-transition::view-transition-new(root) {
-  animation: reveal-theme 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: reveal-theme 750ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes reveal-theme {

@@ -35,7 +35,7 @@ export const ThemeToggle = ({ className = '' }: { className?: string }) => {
     const x = button.left + button.width / 2;
     const y = button.top + button.height / 2;
     const radius = Math.ceil(
-      Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)),
+      Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
     );
 
     root.style.setProperty('--theme-origin', `${x}px ${y}px`);
