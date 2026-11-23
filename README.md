@@ -107,7 +107,9 @@ streamlit run streamlit/app.py
 
 ### 4. UCI virtual (TA5)
 
-Inicia sesión y abre **Monitoreo IoT → Entrar a la UCI virtual** desde el dashboard. Puedes recorrer la sala con el paciente y el personal, seleccionar la cama y abrir su monitor 3D. La **Cama 4** recibe lecturas del emulador IoT. En la **Cama 5** puedes simular una pérdida de señal, consultar la última lectura disponible y restablecer la conexión desde el módulo 3D o el panel. La vista ofrece un modo inmersivo con un visor WebXR compatible.
+Para seguir el recorrido completo, entra a **Triaje → Practicar con un caso ficticio**. Usa uno de los DNI de práctica, recibe al paciente y escribe sus síntomas. La ficha, el peso, la talla y los signos vitales se completan automáticamente. **Evaluar triaje** usa Gemini si está configurado. Sin Gemini, los síntomas de ejemplo de cada paciente permiten ejecutar una evaluación de demostración. La **Cama 5** parte de las mismas mediciones de ingreso.
+
+Desde **Monitoreo IoT → Entrar a la UCI virtual**, puedes recorrer la sala, consultar el emulador IoT de la **Cama 4** y practicar la pérdida y recuperación de señal en la **Cama 5**. La vista ofrece un modo inmersivo con un visor WebXR compatible.
 
 Para enviar lecturas a la Cama 4, ejecuta el simulador desde PowerShell con el backend local disponible en el puerto 3000. El ejercicio de la Cama 5 genera sus propias lecturas en el navegador.
 

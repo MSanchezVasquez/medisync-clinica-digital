@@ -2,7 +2,9 @@ import { useRef, useState } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { toast } from 'sonner';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { TriajeDePractica } from '../components/TriajeDePractica';
+import { rutaTriajeDePractica, rutaUciDesdeTriaje } from '../services/flujoTriajeUci';
 import { descargarInformeTriaje } from '../utils/informeTriaje';
 import voiceIcon from '../assets/voice.png';
 
@@ -31,6 +33,15 @@ const campo =
   'w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500';
 
 export const Triaje = () => {
+  const [parametros] = useSearchParams();
+  if (parametros.get('practica') === 'uci') {
+    return <TriajeDePractica />;
+  }
+
+  return <TriajeClinico />;
+};
+
+function TriajeClinico() {
   const location = useLocation();
   const navigate = useNavigate();
   const recibido = (location.state as { triajeEditar?: TriajeEdicion } | null)?.triajeEditar;
@@ -46,7 +57,7 @@ export const Triaje = () => {
   const [consultandoDni, setConsultandoDni] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [guardado, setGuardado] = useState(false);
+  const [idGuardado, setIdGuardado] = useState<string | null>(null);
   const [escuchando, setEscuchando] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -174,10 +185,13 @@ export const Triaje = () => {
       const data = await r.json().catch(() => null);
       if (!r.ok)
         throw new Error(data?.error || 'No se pudo guardar el triaje en la base de datos.');
-      setGuardado(true);
+      if (typeof data?.id !== 'string' || !data.id) {
+        throw new Error('El servidor no devolvió el identificador del triaje guardado.');
+      }
+      setIdGuardado(data.id);
     } catch (err) {
       console.error(err);
-      setGuardado(false);
+      setIdGuardado(null);
       throw err;
     } finally {
       setGuardando(false);
@@ -193,7 +207,7 @@ export const Triaje = () => {
 
     setCargando(true);
     setDiagnostico(null);
-    setGuardado(false);
+    setIdGuardado(null);
 
     try {
       // Obtener o reutilizar el nombre verificado
@@ -256,7 +270,7 @@ export const Triaje = () => {
     setSintomas('');
     setIdEdicion(null);
     setDiagnostico(null);
-    setGuardado(false);
+    setIdGuardado(null);
     setGuardando(false);
     navigate('/triaje', { replace: true, state: null });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -287,7 +301,7 @@ export const Triaje = () => {
 
   return (
     <main ref={containerRef} className="max-w-6xl mx-auto px-6 py-10">
-      <div className="gsap-card bg-white/80 dark:bg-slate-900/80 border border-emerald-200 dark:border-emerald-900/50 p-4 rounded-2xl shadow-lg mb-8 flex justify-between">
+      <div className="gsap-card bg-white/80 dark:bg-slate-900/80 border border-emerald-200 dark:border-emerald-900/50 p-4 rounded-2xl shadow-lg mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-emerald-800 dark:text-emerald-300 font-semibold">
             Sistema de pre-triaje
@@ -296,7 +310,12 @@ export const Triaje = () => {
             Evaluación conectada al backend y al motor Gemini IA
           </p>
         </div>
-        <span className="h-3 w-3 mt-2 bg-emerald-500 rounded-full" />
+        <Link
+          to={rutaTriajeDePractica}
+          className="rounded-lg border border-teal-200 px-3 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-50 dark:border-teal-800 dark:text-teal-300 dark:hover:bg-teal-950"
+        >
+          Practicar con un caso ficticio
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -357,8 +376,9 @@ export const Triaje = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className={etiqueta}>Edad</label>
+                <label htmlFor="edad" className={etiqueta}>Edad</label>
                 <input
+                  id="edad"
                   type="number"
                   min="0"
                   max="120"
@@ -369,8 +389,9 @@ export const Triaje = () => {
                 />
               </div>
               <div>
-                <label className={etiqueta}>Peso (kg)</label>
+                <label htmlFor="peso" className={etiqueta}>Peso (kg)</label>
                 <input
+                  id="peso"
                   type="number"
                   min="1"
                   step="0.1"
@@ -381,8 +402,9 @@ export const Triaje = () => {
                 />
               </div>
               <div>
-                <label className={etiqueta}>Altura (cm)</label>
+                <label htmlFor="altura" className={etiqueta}>Altura (cm)</label>
                 <input
+                  id="altura"
                   type="number"
                   min="30"
                   max="250"
@@ -483,17 +505,26 @@ export const Triaje = () => {
                 ) : (
                   <p
                     className={`p-3 rounded-xl font-semibold ${
-                      guardado
+                      idGuardado
                         ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
                         : 'bg-amber-50 text-amber-700'
                     }`}
                   >
                     {guardando
                       ? 'Sincronizando con PostgreSQL...'
-                      : guardado
+                      : idGuardado
                         ? 'Triaje registrado correctamente en base de datos'
                         : 'No se pudo guardar automáticamente'}
                   </p>
+                )}
+
+                {idGuardado && (
+                  <Link
+                    to={rutaUciDesdeTriaje(idGuardado)}
+                    className="inline-flex rounded-xl bg-teal-700 px-4 py-2.5 font-semibold text-white hover:bg-teal-800"
+                  >
+                    Practicar el monitoreo en UCI
+                  </Link>
                 )}
 
                 <div className="grid sm:grid-cols-3 gap-3 pt-2">
@@ -532,4 +563,4 @@ export const Triaje = () => {
       </div>
     </main>
   );
-};
+}

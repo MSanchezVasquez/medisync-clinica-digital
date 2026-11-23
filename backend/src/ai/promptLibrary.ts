@@ -1,4 +1,4 @@
-import type { PromptDefinition, TecnicaPrompt } from "./types.js";
+import type { DiagnosticoIA, PromptDefinition, TecnicaPrompt } from "./types.js";
 
 const encabezado = `### ROL
 Eres un asistente de pre-triaje para la clínica MediSync Perú.
@@ -19,13 +19,32 @@ Clasifica la urgencia como ALTA, MEDIA, BAJA o NULA, sugiere una especialidad y 
 ### FORMATO DE SALIDA
 {"urgencia":"ALTA|MEDIA|BAJA|NULA","especialidad":"texto","recomendacion":"texto"}`;
 
-const entrada = (sintomas: string) => `### DATOS DE ENTRADA
+const entrada = (sintomas: string, mediciones?: string) => `### DATOS DE ENTRADA
 <sintomas>
 ${sintomas}
 </sintomas>
+${mediciones ? `\n<mediciones_simuladas>\n${mediciones}\n</mediciones_simuladas>\n` : ''}
 
 ### TAREA
 Evalúa exclusivamente los datos delimitados y devuelve el JSON solicitado.`;
+
+export const EJEMPLOS_TRIAJE = {
+  emergencia: {
+    sintomas: 'Visión borrosa repentina y parálisis en la mitad de la cara.',
+    resultado: { urgencia: 'ALTA', especialidad: 'Neurología / Emergencias', recomendacion: 'Acudir de inmediato al área de emergencias.' },
+  },
+  consulta: {
+    sintomas: 'Fiebre de 38 grados y malestar general desde ayer.',
+    resultado: { urgencia: 'BAJA', especialidad: 'Medicina General', recomendacion: 'Solicitar una cita y vigilar la evolución de los síntomas.' },
+  },
+  sinMalestar: {
+    sintomas: 'Tengo 37 grados y no presento ningún malestar.',
+    resultado: { urgencia: 'NULA', especialidad: 'No aplica', recomendacion: 'No se identifican signos que requieran pre-triaje.' },
+  },
+} satisfies Record<string, { sintomas: string; resultado: DiagnosticoIA }>;
+
+const mostrarEjemplo = (ejemplo: { sintomas: string; resultado: DiagnosticoIA }) =>
+  `Entrada: "${ejemplo.sintomas}"\nSalida: ${JSON.stringify(ejemplo.resultado)}`;
 
 export const PROMPT_LIBRARY: Record<TecnicaPrompt, PromptDefinition> = {
   "zero-shot": {
@@ -37,7 +56,7 @@ export const PROMPT_LIBRARY: Record<TecnicaPrompt, PromptDefinition> = {
     variables: ["sintomas"],
     resultadoEsperado: "JSON con urgencia, especialidad y recomendación.",
     justificacion: "El rol limita el dominio; los delimitadores separan datos de instrucciones y el esquema JSON reduce ambigüedad.",
-    construir: (sintomas) => `${encabezado}\n\n${entrada(sintomas)}`,
+    construir: (sintomas, mediciones) => `${encabezado}\n\n${entrada(sintomas, mediciones)}`,
   },
   "one-shot": {
     id: "PROMPT-02",
@@ -48,13 +67,12 @@ export const PROMPT_LIBRARY: Record<TecnicaPrompt, PromptDefinition> = {
     variables: ["sintomas"],
     resultadoEsperado: "JSON con urgencia, especialidad y recomendación consistente con el ejemplo.",
     justificacion: "Un ejemplo enseña el formato y el nivel de concisión sin sobrecargar el contexto.",
-    construir: (sintomas) => `${encabezado}
+    construir: (sintomas, mediciones) => `${encabezado}
 
 ### EJEMPLO ÚNICO
-Entrada: "Visión borrosa repentina y parálisis en la mitad de la cara."
-Salida: {"urgencia":"ALTA","especialidad":"Neurología / Emergencias","recomendacion":"Acudir de inmediato al área de emergencias."}
+${mostrarEjemplo(EJEMPLOS_TRIAJE.emergencia)}
 
-${entrada(sintomas)}`,
+${entrada(sintomas, mediciones)}`,
   },
   "few-shot": {
     id: "PROMPT-03",
@@ -65,22 +83,19 @@ ${entrada(sintomas)}`,
     variables: ["sintomas"],
     resultadoEsperado: "JSON válido con una de las cuatro urgencias permitidas.",
     justificacion: "Ejemplos contrastantes enseñan fronteras entre urgencias y reducen la tendencia a clasificar entradas no clínicas como BAJA.",
-    construir: (sintomas) => `${encabezado}
+    construir: (sintomas, mediciones) => `${encabezado}
 
 ### EJEMPLOS
 Ejemplo 1
-Entrada: "Visión borrosa repentina y parálisis en la mitad de la cara."
-Salida: {"urgencia":"ALTA","especialidad":"Neurología / Emergencias","recomendacion":"Acudir de inmediato al área de emergencias."}
+${mostrarEjemplo(EJEMPLOS_TRIAJE.emergencia)}
 
 Ejemplo 2
-Entrada: "Fiebre de 38 grados y malestar general desde ayer."
-Salida: {"urgencia":"BAJA","especialidad":"Medicina General","recomendacion":"Solicitar una cita y vigilar la evolución de los síntomas."}
+${mostrarEjemplo(EJEMPLOS_TRIAJE.consulta)}
 
 Ejemplo 3
-Entrada: "Tengo 37 grados y no presento ningún malestar."
-Salida: {"urgencia":"NULA","especialidad":"No aplica","recomendacion":"No se identifican signos que requieran pre-triaje."}
+${mostrarEjemplo(EJEMPLOS_TRIAJE.sinMalestar)}
 
-${entrada(sintomas)}`,
+${entrada(sintomas, mediciones)}`,
   },
 };
 

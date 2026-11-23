@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useTelemetriaIoT } from '../hooks/useTelemetriaIoT';
 import { API } from '../services/api';
+import { rutaUciDesdeTriaje } from '../services/flujoTriajeUci';
 import { descargarInformeTriaje } from '../utils/informeTriaje';
 
 type Triaje = {
@@ -236,7 +237,7 @@ export const Dashboard = () => {
         <header className="p-6 border-b border-slate-200 dark:border-slate-800">
           <h3 className="text-xl font-bold">Historial de triajes</h3>
           <p className="text-sm text-slate-500 mt-1">
-            Edite, elimine o descargue el informe de cada registro.
+            Consulta los registros o continúa un caso en la UCI virtual.
           </p>
         </header>
 
@@ -286,6 +287,12 @@ export const Dashboard = () => {
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2 shrink-0 items-start">
+                      <Link
+                        to={rutaUciDesdeTriaje(t.id)}
+                        className="rounded-lg border border-teal-200 px-3 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-50 dark:border-teal-800 dark:text-teal-300 dark:hover:bg-teal-950"
+                      >
+                        Practicar en UCI
+                      </Link>
                       <button
                         onClick={() =>
                           descargarInformeTriaje({

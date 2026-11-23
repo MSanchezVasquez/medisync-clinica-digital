@@ -86,18 +86,20 @@ export function PacienteUci({ piel }: { piel: string }) {
   );
 }
 
-export function PersonalUci({
+export function PersonaDePie({
   rol,
   posicion,
   giro,
   piel,
   uniforme,
+  personal = true,
 }: {
   rol: string;
   posicion: Coordenadas;
   giro: number;
   piel: string;
   uniforme: string;
+  personal?: boolean;
 }) {
   return (
     <group name={rol} position={posicion} rotation={[0, giro, 0]}>
@@ -137,12 +139,18 @@ export function PersonalUci({
       <Elipsoide posicion={[0, 1.105, 0]} escala={[0.23, 0.275, 0.14]} color={uniforme} />
       <Extremidad posicion={[0, 1.377, 0]} radio={0.065} largo={0.06} color={piel} />
       <group position={[0, 1.526, 0]}>
-        <Rostro piel={piel} cabello={uniforme} cubrebocas="#d2eff0" />
+        <Rostro
+          piel={piel}
+          cabello={personal ? uniforme : '#40302b'}
+          cubrebocas={personal ? '#d2eff0' : undefined}
+        />
       </group>
-      <mesh position={[-0.105, 1.218, 0.127]} rotation={[-0.19, -0.16, 0.08]}>
-        <boxGeometry args={[0.064, 0.09, 0.014]} />
-        <meshStandardMaterial color="#e5f5f3" />
-      </mesh>
+      {personal && (
+        <mesh position={[-0.105, 1.218, 0.127]} rotation={[-0.19, -0.16, 0.08]}>
+          <boxGeometry args={[0.064, 0.09, 0.014]} />
+          <meshStandardMaterial color="#e5f5f3" />
+        </mesh>
+      )}
     </group>
   );
 }
