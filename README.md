@@ -107,9 +107,9 @@ streamlit run streamlit/app.py
 
 ### 4. UCI virtual (TA5)
 
-Inicia sesión y abre **Monitoreo IoT → Entrar a la UCI virtual** desde el dashboard. En la sala puedes recorrer la habitación, seleccionar la cama y abrir el monitor de la Cama 4. La vista también ofrece un modo inmersivo cuando el navegador detecta un visor WebXR compatible.
+Inicia sesión y abre **Monitoreo IoT → Entrar a la UCI virtual** desde el dashboard. Puedes recorrer la sala con el paciente y el personal, seleccionar la cama y abrir su monitor 3D. La **Cama 4** recibe lecturas del emulador IoT. En la **Cama 5** puedes simular una pérdida de señal, consultar la última lectura disponible y restablecer la conexión desde el módulo 3D o el panel. La vista ofrece un modo inmersivo con un visor WebXR compatible.
 
-Con el backend local disponible en el puerto 3000, ejecuta el simulador desde PowerShell:
+Para enviar lecturas a la Cama 4, ejecuta el simulador desde PowerShell con el backend local disponible en el puerto 3000. El ejercicio de la Cama 5 genera sus propias lecturas en el navegador.
 
 ```powershell
 $env:IOT_API_URL = 'http://localhost:3000/api/sensores'

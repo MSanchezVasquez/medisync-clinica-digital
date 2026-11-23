@@ -62,7 +62,7 @@ export const Dashboard = () => {
 
       // 2. Cargar métricas
       try {
-        const rm = await fetch(`${API}/dashboard`, { headers: authHeaders });
+        const rm = await fetch(`${API}/triajes/dashboard`, { headers: authHeaders });
         if (rm.ok) {
           setMetricas(await rm.json());
         } else {

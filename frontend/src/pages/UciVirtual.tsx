@@ -4,14 +4,34 @@ import { createXRStore, useXRSessionModeSupported, XR, XROrigin } from '@react-t
 import { Link } from 'react-router-dom';
 import { ControlesUci } from '../components/uci/ControlesUci';
 import { EscenaUci, type PantallaUci, type SeleccionUci } from '../components/uci/EscenaUci';
-import { useTelemetriaIoT } from '../hooks/useTelemetriaIoT';
+import { useTelemetriaIoT, type LecturaIoT } from '../hooks/useTelemetriaIoT';
 
-const dispositivo = 'DISP-UCI-04';
+const casos = [
+  { cama: 4, titulo: 'Monitoreo IoT', dispositivo: 'DISP-UCI-04' },
+  { cama: 5, titulo: 'Pérdida de señal', dispositivo: 'DISP-UCI-05' },
+] as const;
+
+const muestras = [
+  { frecuenciaCardiaca: 82, temperatura: 36.8, spo2: 98 },
+  { frecuenciaCardiaca: 84, temperatura: 36.9, spo2: 97 },
+  { frecuenciaCardiaca: 80, temperatura: 36.8, spo2: 98 },
+];
+
+function generarLecturaSimulada(indice: number): LecturaIoT {
+  return {
+    ...muestras[indice % muestras.length],
+    dispositivoId: casos[1].dispositivo,
+    paciente: 'Paciente simulado',
+    timestamp: new Date().toISOString(),
+  };
+}
+
 const visor = createXRStore({ emulate: false, enterGrantedSession: false });
+const campoVertical = 54;
 const camaraInicial: CanvasProps['camera'] = {
   position: [0, 1.64, 3.05],
   rotation: [-0.13, 0, 0],
-  fov: 54,
+  fov: campoVertical,
 };
 const formatoHora = new Intl.DateTimeFormat('es-PE', {
   hour: '2-digit',
@@ -44,14 +64,28 @@ class LimiteEscena extends Component<{ children: ReactNode }, { error: boolean }
 }
 
 export default function UciVirtual() {
+  const [caso, setCaso] = useState<(typeof casos)[number]>(casos[0]);
   const [seleccion, setSeleccion] = useState<SeleccionUci | null>(null);
   const [errorVisor, setErrorVisor] = useState(false);
+  const [senalActiva, setSenalActiva] = useState(true);
+  const [lecturaSimulada, setLecturaSimulada] = useState<LecturaIoT>();
+  const esSimulacion = caso.cama === 5;
   const soportaVr = useXRSessionModeSupported('immersive-vr');
   const {
-    lecturas: [lectura],
+    lecturas: [lecturaIoT],
     estado,
     consultadoEn,
-  } = useTelemetriaIoT(dispositivo);
+  } = useTelemetriaIoT(casos[0].dispositivo, !esSimulacion);
+
+  useEffect(() => {
+    if (!esSimulacion || !senalActiva) return;
+
+    let muestra = 1;
+    const intervalo = window.setInterval(() => {
+      setLecturaSimulada(generarLecturaSimulada(muestra++));
+    }, 3000);
+    return () => window.clearInterval(intervalo);
+  }, [esSimulacion, senalActiva]);
 
   useEffect(
     () => () => {
@@ -63,10 +97,16 @@ export default function UciVirtual() {
     []
   );
 
-  const desactualizada = lectura && consultadoEn - Date.parse(lectura.timestamp) >= 15_000;
-  const estadoVisible =
-    estado === 'sin-conexion'
-      ? 'Sin conexión'
+  const lectura = esSimulacion ? lecturaSimulada : lecturaIoT;
+  const sinConexion = !esSimulacion && estado === 'sin-conexion';
+  const interrumpida = esSimulacion && !senalActiva;
+  const desactualizada = Boolean(
+    !esSimulacion && lecturaIoT && consultadoEn - Date.parse(lecturaIoT.timestamp) >= 15_000
+  );
+  const estadoVisible = sinConexion
+    ? 'Sin conexión'
+    : interrumpida
+      ? 'Señal interrumpida'
       : desactualizada
         ? 'Datos desactualizados'
         : lectura
@@ -75,6 +115,7 @@ export default function UciVirtual() {
   const pantalla: PantallaUci = {
     estado: estadoVisible,
     hora: lectura ? formatoHora.format(new Date(lectura.timestamp)) : '',
+    advertencia: sinConexion || interrumpida || desactualizada,
     metricas: [
       { nombre: 'Pulso', valor: lectura ? String(lectura.frecuenciaCardiaca) : '—', unidad: 'bpm' },
       {
@@ -85,6 +126,24 @@ export default function UciVirtual() {
       { nombre: 'SpO₂', valor: lectura ? String(lectura.spo2) : '—', unidad: '%' },
     ],
   };
+
+  function cambiarCaso(siguiente: (typeof casos)[number]) {
+    if (siguiente === caso) return;
+    setCaso(siguiente);
+    setSeleccion(null);
+    setSenalActiva(true);
+    setLecturaSimulada(siguiente.cama === 5 ? generarLecturaSimulada(0) : undefined);
+  }
+
+  function alternarSenal() {
+    if (senalActiva) {
+      setSenalActiva(false);
+    } else {
+      setLecturaSimulada(generarLecturaSimulada(0));
+      setSenalActiva(true);
+    }
+    setSeleccion('monitor');
+  }
 
   const entrarVr = async () => {
     setErrorVisor(false);
@@ -108,7 +167,7 @@ export default function UciVirtual() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">UCI virtual</h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Recorrido de capacitación con telemetría simulada de la Cama 4.
+            Recorrido de capacitación con dos casos de monitoreo de pacientes.
           </p>
         </div>
         {soportaVr && (
@@ -127,38 +186,66 @@ export default function UciVirtual() {
         </p>
       )}
 
+      <div role="group" aria-label="Casos de la UCI" className="grid gap-2 sm:grid-cols-2">
+        {casos.map((opcion) => (
+          <button
+            key={opcion.cama}
+            type="button"
+            aria-pressed={caso === opcion}
+            onClick={() => cambiarCaso(opcion)}
+            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold hover:border-teal-500 aria-pressed:border-teal-600 aria-pressed:bg-teal-50 dark:border-slate-700 dark:bg-slate-900 dark:aria-pressed:border-teal-500 dark:aria-pressed:bg-teal-950"
+          >
+            {opcion.titulo}
+            <span className="text-xs text-slate-600 dark:text-slate-300">Cama {opcion.cama}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <section
           aria-label="Sala de cuidados intensivos"
           className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
         >
           <LimiteEscena>
-            <div className="h-[55vh] min-h-80 max-h-[660px] bg-slate-800 focus-within:ring-2 focus-within:ring-inset focus-within:ring-teal-400">
+            <div className="h-80 max-h-[660px] bg-slate-800 focus-within:ring-2 focus-within:ring-inset focus-within:ring-teal-400 sm:h-[55vh] sm:min-h-80">
               <Canvas camera={camaraInicial} dpr={[1, 1.5]} fallback={<AvisoWebGL />}>
                 <XR store={visor}>
                   <XROrigin position={[0, 0, 3.05]} />
-                  <ControlesUci />
+                  <ControlesUci campoVertical={campoVertical} />
                   <EscenaUci
+                    numero={caso.cama}
                     seleccion={seleccion}
                     pantalla={pantalla}
                     onSeleccionar={setSeleccion}
+                    senal={
+                      esSimulacion ? { activa: senalActiva, onAlternar: alternarSenal } : undefined
+                    }
                   />
                 </XR>
               </Canvas>
             </div>
             <p className="px-4 py-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-              Arrastra para mirar. Enfoca la escena y usa WASD o las flechas para moverte. Selecciona
-              la cama o el monitor dentro de la sala.
+              Arrastra para mirar. Usa WASD o las flechas con la escena enfocada para moverte. Pulsa
+              la cama, el monitor{esSimulacion ? ' o el módulo de señal' : ''} en la sala.
             </p>
           </LimiteEscena>
         </section>
 
         <aside
-          aria-label="Controles y telemetría de la Cama 4"
+          aria-label={`Controles y telemetría de la Cama ${caso.cama}`}
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
         >
-          <h2 className="text-lg font-semibold">Cama 4</h2>
-          <p className="mt-1 font-mono text-xs text-slate-600 dark:text-slate-300">{dispositivo}</p>
+          <h2 className="text-lg font-semibold">Cama {caso.cama}</h2>
+          <p className="mt-1 font-mono text-xs text-slate-600 dark:text-slate-300">
+            {caso.dispositivo}
+          </p>
+          {esSimulacion && (
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+              Interrumpe la señal y comprueba que el monitor conserva la última lectura.
+              Restablécela con el módulo iluminado debajo de la pantalla 3D o con el botón del
+              panel.
+            </p>
+          )}
           <div className="mt-4 flex gap-2 text-sm font-semibold">
             <button
               type="button"
@@ -179,15 +266,18 @@ export default function UciVirtual() {
           </div>
           {seleccion === 'cama' && (
             <p role="status" className="mt-4 text-sm text-teal-700 dark:text-teal-300">
-              Cama 4 seleccionada.
+              Cama {caso.cama} seleccionada.
             </p>
           )}
           {seleccion === 'monitor' && (
             <section
-              aria-label="Monitor de la Cama 4"
+              aria-label={`Monitor de la Cama ${caso.cama}`}
               className="mt-4 rounded-xl bg-slate-950 px-4 py-3 text-slate-100"
             >
-              <p role="status" className="text-sm font-semibold text-teal-200">
+              <p
+                role="status"
+                className={`text-sm font-semibold ${pantalla.advertencia ? 'text-amber-200' : 'text-teal-200'}`}
+              >
                 {estadoVisible}
               </p>
               <dl className="my-2 divide-y divide-slate-800 text-sm">
@@ -206,6 +296,15 @@ export default function UciVirtual() {
                 </p>
               )}
             </section>
+          )}
+          {esSimulacion && (
+            <button
+              type="button"
+              onClick={alternarSenal}
+              className="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
+            >
+              {senalActiva ? 'Simular interrupción' : 'Restablecer señal'}
+            </button>
           )}
         </aside>
       </div>
