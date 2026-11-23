@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { MathUtils } from 'three';
+import { MathUtils, PerspectiveCamera } from 'three';
 
 const teclasMovimiento = new Set([
   'KeyW',
@@ -13,9 +13,41 @@ const teclasMovimiento = new Set([
   'ArrowRight',
 ]);
 
-export function ControlesUci() {
-  const { camera, gl } = useThree();
+export type VistaUci = {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  fov: number;
+};
+
+export function ControlesUci({
+  vistaInicial,
+  reencuadres,
+}: {
+  vistaInicial: VistaUci;
+  reencuadres: number;
+}) {
+  const { camera, gl, size } = useThree();
   const teclas = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (gl.xr.isPresenting) return;
+
+    teclas.current.clear();
+    camera.position.set(...vistaInicial.position);
+    camera.rotation.set(...vistaInicial.rotation, 'YXZ');
+  }, [camera, gl, reencuadres, vistaInicial]);
+
+  useEffect(() => {
+    if (!(camera instanceof PerspectiveCamera) || size.width === 0 || size.height === 0) return;
+
+    // Mantiene visibles la cama y el equipo en pantallas estrechas.
+    const aspecto = size.width / size.height;
+    const tangenteVertical = Math.max(
+      Math.tan(MathUtils.degToRad(vistaInicial.fov / 2)),
+      Math.tan(MathUtils.degToRad(31)) / aspecto
+    );
+    camera.setFocalLength(camera.getFilmHeight() / (2 * tangenteVertical));
+  }, [camera, size.width, size.height, vistaInicial.fov]);
 
   useEffect(() => {
     const canvas = gl.domElement;

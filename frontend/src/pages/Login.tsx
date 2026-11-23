@@ -76,10 +76,14 @@ export const Login = () => {
         {/* Formulario */}
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label
+              htmlFor="login-email"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+            >
               Correo Institucional
             </label>
             <input
+              id="login-email"
               type="email"
               name="email"
               value={credenciales.email}
@@ -92,10 +96,14 @@ export const Login = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label
+              htmlFor="login-password"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+            >
               Contraseña
             </label>
             <input
+              id="login-password"
               type="password"
               name="password"
               value={credenciales.password}

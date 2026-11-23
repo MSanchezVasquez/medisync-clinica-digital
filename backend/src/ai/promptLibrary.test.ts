@@ -26,3 +26,9 @@ test("Few-Shot contiene varios ejemplos representativos", () => {
   assert.match(prompt, /"NULA"/);
   assert.match(prompt, /"ALTA"/);
 });
+
+test('el contexto de la práctica conserva las mediciones separadas de los síntomas', () => {
+  const prompt = obtenerPrompt('few-shot').construir('Síntomas escritos', 'Edad: 35 años\nPulso: 82 bpm');
+  assert.match(prompt, /<sintomas>\s*Síntomas escritos\s*<\/sintomas>/);
+  assert.match(prompt, /<mediciones_simuladas>\s*Edad: 35 años\s*Pulso: 82 bpm\s*<\/mediciones_simuladas>/);
+});

@@ -68,7 +68,7 @@ const NotificationDropdown = () => {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="sm:relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors relative cursor-pointer"
@@ -99,7 +99,7 @@ const NotificationDropdown = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50"
+            className="absolute inset-x-3 top-full sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-3 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50"
           >
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
               <div>
@@ -344,16 +344,16 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
+        <div className="flex flex-wrap items-center justify-between gap-y-1 py-2 sm:h-20 sm:flex-nowrap sm:py-0">
           {/* Brand / Logo */}
-          <Link to="/dashboard" className="flex items-center gap-3 group cursor-pointer">
-            <div className="w-10 h-10 bg-teal-600 group-hover:bg-teal-500 rounded-xl flex items-center justify-center shadow-md transition-colors">
+          <Link to="/dashboard" className="group flex cursor-pointer items-center gap-2 sm:gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-teal-600 shadow-md transition-colors group-hover:bg-teal-500 sm:size-10">
               <span className="text-white font-bold text-2xl leading-none">+</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+              <h1 className="whitespace-nowrap text-lg font-bold tracking-tight text-slate-900 sm:text-xl dark:text-white">
                 MediSync{' '}
-                <span className="text-teal-600 dark:text-teal-400 font-semibold text-lg">Perú</span>
+                <span className="text-base font-semibold text-teal-600 sm:text-lg dark:text-teal-400">Perú</span>
               </h1>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium -mt-1 hidden sm:block">
                 Sistema de Triaje & Telemetría UCI
@@ -362,11 +362,11 @@ export const Header = () => {
           </Link>
 
           {/* Navegación Principal y Acciones */}
-          <div className="flex items-center gap-5">
-            <nav className="flex items-center gap-2">
+          <div className="contents sm:flex sm:items-center sm:gap-5">
+            <nav className="order-last flex w-full items-center gap-2 sm:order-none sm:w-auto">
               <Link
                 to="/dashboard"
-                className={`text-sm font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all sm:flex-initial sm:py-2.5 ${
                   esRutaActiva('/dashboard')
                     ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30 ring-2 ring-teal-600/40 scale-[1.02]'
                     : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'
@@ -393,7 +393,7 @@ export const Header = () => {
 
               <Link
                 to="/triaje"
-                className={`text-sm font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all sm:flex-initial sm:py-2.5 ${
                   esRutaActiva('/triaje')
                     ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30 ring-2 ring-teal-600/40 scale-[1.02]'
                     : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900'
@@ -421,7 +421,7 @@ export const Header = () => {
 
             <div className="h-7 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3">
               {/* Aquí se reemplazó el botón estático por el componente funcional de notificaciones */}
               <NotificationDropdown />
 

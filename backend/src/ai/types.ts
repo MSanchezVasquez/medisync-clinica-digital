@@ -18,5 +18,5 @@ export type PromptDefinition = {
   variables: string[];
   resultadoEsperado: string;
   justificacion: string;
-  construir: (sintomas: string) => string;
+  construir: (sintomas: string, mediciones?: string) => string;
 };

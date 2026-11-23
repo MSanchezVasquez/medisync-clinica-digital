@@ -62,6 +62,7 @@ export class AiService {
   async evaluar(
     sintomasEntrada: unknown,
     tecnica: TecnicaPrompt = 'few-shot',
+    mediciones?: string,
   ): Promise<DiagnosticoIA> {
     const sintomas = validarSintomas(sintomasEntrada);
     if (!this.apiKey)
@@ -70,7 +71,7 @@ export class AiService {
         503,
         'El servidor no tiene configurada la API key de Gemini.',
       );
-    const prompt = obtenerPrompt(tecnica).construir(sintomas);
+    const prompt = obtenerPrompt(tecnica).construir(sintomas, mediciones);
     const modelo = this.cliente.getGenerativeModel({ model: this.modelo });
     let temporizador: ReturnType<typeof setTimeout> | undefined;
     try {

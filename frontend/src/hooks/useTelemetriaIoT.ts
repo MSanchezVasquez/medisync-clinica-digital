@@ -30,7 +30,7 @@ function esLecturaIoT(valor: unknown): valor is LecturaIoT {
   );
 }
 
-export function useTelemetriaIoT(dispositivoId?: string) {
+export function useTelemetriaIoT(dispositivoId?: string, habilitada = true) {
   const [telemetria, setTelemetria] = useState<Telemetria>({
     lecturas: [],
     estado: 'cargando',
@@ -38,6 +38,8 @@ export function useTelemetriaIoT(dispositivoId?: string) {
   });
 
   useEffect(() => {
+    if (!habilitada) return;
+
     let activa = true;
     let siguienteConsulta: number | undefined;
     let solicitud: AbortController | undefined;
@@ -84,7 +86,7 @@ export function useTelemetriaIoT(dispositivoId?: string) {
       window.clearTimeout(siguienteConsulta);
       solicitud?.abort();
     };
-  }, [dispositivoId]);
+  }, [dispositivoId, habilitada]);
 
   return telemetria;
 }

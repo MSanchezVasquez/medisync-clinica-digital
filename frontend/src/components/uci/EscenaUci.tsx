@@ -1,15 +1,23 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import type { ThreeEvent } from '@react-three/fiber';
 import { SRGBColorSpace, type CanvasTexture } from 'three';
-
-export type SeleccionUci = 'cama' | 'monitor';
+import type { EstadoSenal } from '../../hooks/useSimulacionSenal';
+import { PacienteUci, PersonaDePie } from './PersonasUci';
 
 export interface PantallaUci {
   estado: string;
   hora: string;
+  advertencia: boolean;
   metricas: { nombre: string; valor: string; unidad: string }[];
 }
 
 type Coordenadas = [number, number, number];
+
+function pulsar(evento: ThreeEvent<MouseEvent>, accion: () => void) {
+  evento.stopPropagation();
+  if (evento.delta > 5) return;
+  accion();
+}
 
 function Bloque({
   posicion,
@@ -58,24 +66,11 @@ function Habitacion() {
   );
 }
 
-function Cama({
-  seleccionada,
-  onSeleccionar,
-}: {
-  seleccionada: boolean;
-  onSeleccionar: () => void;
-}) {
-  const color = seleccionada ? '#17bca6' : '#427683';
+function Cama({ numero }: { numero: 4 | 5 }) {
+  const color = numero === 4 ? '#427683' : '#565e8b';
 
   return (
-    <group
-      name="cama-04"
-      position={[-1.28, 0, -1.44]}
-      onClick={(event) => {
-        event.stopPropagation();
-        onSeleccionar();
-      }}
-    >
+    <group name={`cama-0${numero}`} position={[-1.28, 0, -1.44]}>
       <Bloque posicion={[0, 0.009, 0]} tamano={[1.58, 0.012, 2.76]} color={color} />
       <Bloque posicion={[0, 0.02, 0]} tamano={[1.51, 0.012, 2.69]} color="#92aab0" />
       <Bloque posicion={[0, 0.25, 0]} tamano={[1.02, 0.14, 1.75]} color="#536b76" />
@@ -87,11 +82,20 @@ function Cama({
       <Bloque posicion={[0, 0.54, 1.23]} tamano={[1.28, 0.67, 0.1]} color={color} />
       <Bloque posicion={[-0.68, 0.8, -0.13]} tamano={[0.06, 0.3, 1.29]} color="#d7e2de" />
       <Bloque posicion={[0.68, 0.8, -0.13]} tamano={[0.06, 0.3, 1.29]} color="#d7e2de" />
+      <PacienteUci piel={numero === 4 ? '#ab7558' : '#d5a786'} />
     </group>
   );
 }
 
-function PantallaMonitor({ abierta, pantalla }: { abierta: boolean; pantalla: PantallaUci }) {
+function PantallaMonitor({
+  numero,
+  abierta,
+  pantalla,
+}: {
+  numero: 4 | 5;
+  abierta: boolean;
+  pantalla: PantallaUci;
+}) {
   const textura = useRef<CanvasTexture>(null);
   const [canvas] = useState(() => {
     const superficie = document.createElement('canvas');
@@ -110,7 +114,7 @@ function PantallaMonitor({ abierta, pantalla }: { abierta: boolean; pantalla: Pa
     ctx.fillRect(0, 0, canvas.width, 108);
     ctx.fillStyle = '#d9faf4';
     ctx.font = 'bold 47px sans-serif';
-    ctx.fillText('CAMA 04  /  MONITOR', 48, 73);
+    ctx.fillText(`CAMA 0${numero}  /  MONITOR`, 48, 73);
 
     if (abierta) {
       pantalla.metricas.forEach(({ nombre, valor, unidad }, indice) => {
@@ -122,8 +126,8 @@ function PantallaMonitor({ abierta, pantalla }: { abierta: boolean; pantalla: Pa
         ctx.font = 'bold 49px sans-serif';
         ctx.fillText(`${valor} ${unidad}`, 530, y);
       });
-      ctx.fillStyle = '#bed2d4';
-      ctx.font = '29px sans-serif';
+      ctx.fillStyle = pantalla.advertencia ? '#fcca83' : '#bed2d4';
+      ctx.font = 'bold 34px sans-serif';
       ctx.fillText(
         `${pantalla.estado}${pantalla.hora ? `  ·  ${pantalla.hora}` : ''}`,
         50,
@@ -137,7 +141,7 @@ function PantallaMonitor({ abierta, pantalla }: { abierta: boolean; pantalla: Pa
     }
 
     if (textura.current) textura.current.needsUpdate = true;
-  }, [abierta, canvas, pantalla]);
+  }, [abierta, canvas, numero, pantalla]);
 
   return (
     <mesh position={[0, 1.68, 0.13]}>
@@ -149,36 +153,86 @@ function PantallaMonitor({ abierta, pantalla }: { abierta: boolean; pantalla: Pa
   );
 }
 
+const luzSenal: Record<EstadoSenal, string> = {
+  activa: '#6ef5c4',
+  interrumpida: '#ffb951',
+  reconectando: '#bde7ff',
+};
+
+function ModuloSenal({ estado, onPulsar }: { estado: EstadoSenal; onPulsar: () => void }) {
+  return (
+    <group
+      name="modulo-senal"
+      position={[0.3, 0.91, 0.18]}
+      onClick={(evento) => pulsar(evento, onPulsar)}
+    >
+      <Bloque posicion={[0, 0, 0]} tamano={[0.53, 0.25, 0.24]} color="#20343d" />
+      <mesh position={[0, 0, 0.125]}>
+        <circleGeometry args={[0.083, 24]} />
+        <meshBasicMaterial color={luzSenal[estado]} toneMapped={false} />
+      </mesh>
+      {estado === 'interrumpida' ? (
+        <Bloque posicion={[0, 0, 0.129]} tamano={[0.079, 0.017, 0.006]} color="#13292d" />
+      ) : (
+        [0.035, 0.059, 0.085].map((alto, indice) => (
+          <Bloque
+            key={alto}
+            posicion={[(indice - 1) * 0.03, -0.04 + alto / 2, 0.129]}
+            tamano={[0.017, alto, 0.006]}
+            color="#13292d"
+          />
+        ))
+      )}
+    </group>
+  );
+}
+
 export function EscenaUci({
-  seleccion,
+  numero,
   pantalla,
-  onSeleccionar,
+  monitorAbierto,
+  onAbrirMonitor,
+  senal,
 }: {
-  seleccion: SeleccionUci | null;
+  numero: 4 | 5;
   pantalla: PantallaUci;
-  onSeleccionar: (seleccion: SeleccionUci) => void;
+  monitorAbierto: boolean;
+  onAbrirMonitor: () => void;
+  senal?: { estado: EstadoSenal; onPulsar: () => void };
 }) {
   return (
     <>
       <Habitacion />
-      <Cama seleccionada={seleccion !== null} onSeleccionar={() => onSeleccionar('cama')} />
+      <Cama numero={numero} />
+      <PersonaDePie
+        rol="enfermeria"
+        posicion={[-2.5, 0, -2.06]}
+        giro={0.5}
+        piel="#b67c5e"
+        uniforme="#177c85"
+      />
+      <PersonaDePie
+        rol="medicina"
+        posicion={[2.55, 0, -2.1]}
+        giro={-0.65}
+        piel="#d3a384"
+        uniforme="#46537e"
+      />
       <group
-        name="monitor-04"
+        name={`monitor-0${numero}`}
         position={[1.19, 0, -2.61]}
         rotation={[0, -0.15, 0]}
-        onClick={(event) => {
-          event.stopPropagation();
-          onSeleccionar('monitor');
-        }}
+        onClick={monitorAbierto ? undefined : (evento) => pulsar(evento, onAbrirMonitor)}
       >
         <Bloque posicion={[0, 0.07, 0]} tamano={[0.96, 0.14, 0.62]} color="#344b56" />
         <Bloque posicion={[0, 0.74, 0]} tamano={[0.18, 1.35, 0.2]} color="#455e69" />
         <Bloque
           posicion={[0, 1.68, 0]}
           tamano={[1.95, 1.2, 0.25]}
-          color={seleccion === 'monitor' ? '#1d9d90' : '#293e4a'}
+          color={monitorAbierto ? '#1d9d90' : '#293e4a'}
         />
-        <PantallaMonitor abierta={seleccion === 'monitor'} pantalla={pantalla} />
+        <PantallaMonitor numero={numero} abierta={monitorAbierto} pantalla={pantalla} />
+        {senal && <ModuloSenal estado={senal.estado} onPulsar={senal.onPulsar} />}
       </group>
     </>
   );
